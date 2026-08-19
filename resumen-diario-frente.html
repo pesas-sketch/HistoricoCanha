@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resumen Diario · Zafra por Frente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --ink:#23241F;
+    --paper:#EDEAE1;
+    --paper-dim:#E2DDCF;
+    --cane:#3F6B3A;
+    --cane-dark:#2C4D29;
+    --amber:#C98A2B;
+    --rust:#A8402A;
+    --line:#C7C2B4;
+    --white:#FBFAF6;
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+
+  /* ---------- Header / Hero ---------- */
+  header.hero{
+    padding:56px 24px 40px;
+    max-width:1080px;
+    margin:0 auto;
+    border-bottom:1px solid var(--line);
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--cane-dark);
+    margin:0 0 14px;
+  }
+  h1.title{
+    font-family:'Fraunces',serif;
+    font-optical-sizing:auto;
+    font-weight:600;
+    font-size:clamp(34px,5vw,56px);
+    line-height:1.02;
+    margin:0 0 18px;
+    letter-spacing:-0.01em;
+  }
+  h1.title em{
+    font-style:italic;
+    font-weight:400;
+    color:var(--cane-dark);
+  }
+  .hero-sub{
+    max-width:560px;
+    font-size:15px;
+    line-height:1.55;
+    color:#4B4A42;
+    margin:0 0 28px;
+  }
+
+  .hero-stat-row{
+    display:flex;
+    gap:0;
+    border:1px solid var(--ink);
+    background:var(--white);
+    flex-wrap:wrap;
+  }
+  .hero-stat{
+    flex:1 1 160px;
+    padding:18px 20px;
+    border-right:1px solid var(--line);
+  }
+  .hero-stat:last-child{border-right:none;}
+  .hero-stat .label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:#6B6A5E;
+    margin-bottom:8px;
+  }
+  .hero-stat .value{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:26px;
+    color:var(--ink);
+  }
+  .hero-stat .value.pos{color:var(--cane-dark);}
+  .hero-stat .value.neg{color:var(--rust);}
+
+  /* ---------- Controls ---------- */
+  .controls{
+    max-width:1080px;
+    margin:28px auto 0;
+    padding:0 24px;
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+  }
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:#6B6A5E;
+  }
+  select, input[type=text]{
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    padding:9px 12px;
+    border:1px solid var(--ink);
+    background:var(--white);
+    color:var(--ink);
+    border-radius:var(--radius);
+    min-width:180px;
+  }
+  input[type=text]{min-width:320px;}
+  button{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    padding:10px 18px;
+    background:var(--ink);
+    color:var(--white);
+    border:1px solid var(--ink);
+    border-radius:var(--radius);
+    cursor:pointer;
+  }
+  button:hover{background:var(--cane-dark);border-color:var(--cane-dark);}
+  button.ghost{
+    background:transparent;
+    color:var(--ink);
+  }
+  button.ghost:hover{background:var(--paper-dim);}
+  .controls .spacer{flex:1;}
+  #status{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;
+    color:#6B6A5E;
+  }
+
+  /* ---------- Ticket stubs (signature element) ---------- */
+  main{
+    max-width:1080px;
+    margin:0 auto;
+    padding:36px 24px 80px;
+  }
+  .group-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    color:#6B6A5E;
+    margin:32px 0 12px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+  }
+  .group-label:first-child{border-top:none;padding-top:0;margin-top:0;}
+
+  .ticket{
+    position:relative;
+    display:grid;
+    grid-template-columns:1.6fr 1fr 1fr 1fr 1.4fr;
+    align-items:center;
+    gap:18px;
+    background:var(--white);
+    border:1px dashed var(--ink);
+    border-radius:var(--radius);
+    padding:18px 22px;
+    margin-bottom:14px;
+  }
+  .ticket::before, .ticket::after{
+    content:"";
+    position:absolute;
+    width:14px;height:14px;
+    background:var(--paper);
+    border:1px dashed var(--ink);
+    border-radius:50%;
+    top:50%;
+    transform:translateY(-50%);
+  }
+  .ticket::before{left:-8px;}
+  .ticket::after{right:-8px;}
+
+  .t-id{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:20px;
+  }
+  .t-id .sub{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-weight:400;
+    font-size:11.5px;
+    color:#6B6A5E;
+    margin-top:3px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+  }
+  .t-metric .label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:#6B6A5E;
+    margin-bottom:4px;
+  }
+  .t-metric .value{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:17px;
+  }
+  .t-gauge{display:flex;flex-direction:column;gap:6px;}
+  .t-gauge .label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:#6B6A5E;
+    display:flex;
+    justify-content:space-between;
+  }
+  .gauge-track{
+    height:8px;
+    background:var(--paper-dim);
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+    position:relative;
+  }
+  .gauge-fill{
+    height:100%;
+    background:var(--cane);
+    transition:width .4s ease;
+  }
+  .gauge-fill.over{background:var(--amber);}
+  .gauge-fill.under{background:var(--rust);}
+
+  .empty{
+    padding:60px 20px;
+    text-align:center;
+    color:#6B6A5E;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    border:1px dashed var(--line);
+  }
+
+  footer{
+    max-width:1080px;
+    margin:0 auto;
+    padding:20px 24px 48px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:#8B8A7C;
+    border-top:1px solid var(--line);
+  }
+
+  @media (max-width:760px){
+    .ticket{grid-template-columns:1fr 1fr;grid-template-areas:"id id" "m1 m2" "m3 gauge";}
+    .ticket::before,.ticket::after{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <p class="eyebrow">Zafra · Control de recepción</p>
+  <h1 class="title">Resumen diario<br><em>por frente y subdivisión</em></h1>
+  <p class="hero-sub">Tonelaje neto recibido frente a lo asignado, agrupado por frente y subdivisión para el día de zafra seleccionado. Datos desde la tabla <strong>Historicoestable</strong>.</p>
+
+  <div class="hero-stat-row">
+    <div class="hero-stat">
+      <div class="label">Día de zafra</div>
+      <div class="value" id="stat-dia">—</div>
+    </div>
+    <div class="hero-stat">
+      <div class="label">Neto total (ton)</div>
+      <div class="value" id="stat-neto">—</div>
+    </div>
+    <div class="hero-stat">
+      <div class="label">Cortas total (ton)</div>
+      <div class="value" id="stat-cortas">—</div>
+    </div>
+    <div class="hero-stat">
+      <div class="label">Avance vs. asignado</div>
+      <div class="value" id="stat-avance">—</div>
+    </div>
+    <div class="hero-stat">
+      <div class="label">Frentes activos</div>
+      <div class="value" id="stat-frentes">—</div>
+    </div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="field">
+    <label for="dia-select">Día de zafra</label>
+    <select id="dia-select"></select>
+  </div>
+  <div class="field" style="flex:1;">
+    <label for="csv-url">URL CSV publicado (Google Sheets)</label>
+    <input type="text" id="csv-url" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
+  </div>
+  <button id="load-btn">Cargar datos</button>
+  <button class="ghost" id="sample-btn">Usar datos de ejemplo</button>
+  <div class="spacer"></div>
+  <span id="status">Mostrando datos de ejemplo</span>
+  <span id="refresh-indicator" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6B6A5E;"></span>
+</div>
+
+<main id="main"></main>
+
+<footer>
+  Fuente: tabla Historicoestable (AppSheet → Google Sheets · Historico.xlsx). Generado como página estática para GitHub Pages.
+</footer>
+
+<script>
+/* ---------------------------------------------------------------
+   CÓMO CONECTAR DATOS REALES
+   1. En Google Sheets: Archivo → Compartir → Publicar en la web
+      → elegir la hoja "Historicoestable" → formato CSV → Publicar.
+   2. Pega esa URL en el campo "URL CSV publicado" y pulsa "Cargar datos".
+   3. Columnas esperadas (nombres tal cual en AppSheet):
+      frente, subdiv, dia_zafra, neto_ton, TonsCortas, TON_ASIGNADO_BASE
+------------------------------------------------------------------*/
+
+const REQUIRED_COLS = ['frente','subdiv','dia_zafra','neto_ton','TonsCortas','TON_ASIGNADO_BASE'];
+
+const SAMPLE_CSV = `frente,subdiv,dia_zafra,neto_ton,TonsCortas,TON_ASIGNADO_BASE
+12,3,118,842.5,910.2,900
+12,4,118,610.0,640.0,650
+7,1,118,1204.8,1180.0,1250
+7,2,118,455.2,470.0,500
+19,1,118,980.0,1020.5,950
+12,3,117,790.0,860.0,900
+7,1,117,1150.0,1200.0,1250
+19,1,117,900.4,940.0,950`;
+
+let rows = [];
+let refreshTimer = null;
+const REFRESH_MS = 10 * 60 * 1000; // los datos de origen se sincronizan cada 10 min
+
+function loadFromUrl(silent){
+  const url = document.getElementById('csv-url').value.trim();
+  if(!url) return;
+  if(!silent) document.getElementById('status').textContent = 'Cargando…';
+  fetch(url, {cache:'no-store'})
+    .then(r => { if(!r.ok) throw new Error(r.status); return r.text(); })
+    .then(text => {
+      parseAndRender(text);
+      const now = new Date();
+      document.getElementById('status').textContent = 'Datos cargados desde Google Sheets';
+      document.getElementById('refresh-indicator').textContent =
+        `· última carga ${now.toLocaleTimeString('es')} · auto-refresco cada 10 min`;
+    })
+    .catch(err => {
+      document.getElementById('status').textContent = 'Error al cargar: ' + err.message;
+    });
+}
+
+function startAutoRefresh(){
+  if(refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => loadFromUrl(true), REFRESH_MS);
+}
+
+function parseAndRender(csvText){
+  const parsed = Papa.parse(csvText.trim(), {header:true, dynamicTyping:true, skipEmptyLines:true});
+  const missing = REQUIRED_COLS.filter(c => !parsed.meta.fields.includes(c));
+  if(missing.length){
+    document.getElementById('status').textContent = 'Faltan columnas: ' + missing.join(', ');
+    return;
+  }
+  rows = parsed.data;
+  buildDiaSelector();
+  render();
+}
+
+function buildDiaSelector(){
+  const dias = [...new Set(rows.map(r => r.dia_zafra))].sort((a,b)=>b-a);
+  const sel = document.getElementById('dia-select');
+  sel.innerHTML = dias.map(d => `<option value="${d}">Día ${d}</option>`).join('');
+  sel.onchange = render;
+}
+
+function fmt(n){
+  return n.toLocaleString('es', {minimumFractionDigits:1, maximumFractionDigits:1});
+}
+
+// Convierte valores que pueden venir con coma decimal (ej. "22,07") a Number
+function toNum(v){
+  if(typeof v === 'number') return v;
+  if(v == null || v === '') return 0;
+  const n = parseFloat(String(v).replace(/\./g,'').replace(',', '.'));
+  return isNaN(n) ? 0 : n;
+}
+
+function render(){
+  const sel = document.getElementById('dia-select');
+  const dia = sel.value ? Number(sel.value) : null;
+  const dayRows = rows.filter(r => r.dia_zafra === dia);
+
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+
+  if(!dayRows.length){
+    main.innerHTML = '<div class="empty">Sin registros para este día de zafra.</div>';
+    updateHero(dia, []);
+    return;
+  }
+
+  // agrupar por frente + subdiv
+  const groups = {};
+  for(const r of dayRows){
+    const key = `${r.frente}·${r.subdiv}`;
+    if(!groups[key]) groups[key] = {frente:r.frente, subdiv:r.subdiv, neto:0, cortas:0, asignado:0};
+    groups[key].neto += toNum(r.neto_ton);
+    groups[key].cortas += toNum(r.TonsCortas);
+    groups[key].asignado += toNum(r.TON_ASIGNADO_BASE);
+  }
+
+  const groupLabel = document.createElement('div');
+  groupLabel.className = 'group-label';
+  groupLabel.textContent = `Frentes activos — ${Object.keys(groups).length}`;
+  main.appendChild(groupLabel);
+
+  Object.values(groups)
+    .sort((a,b)=> b.neto - a.neto)
+    .forEach(g => main.appendChild(ticketEl(g)));
+
+  updateHero(dia, Object.values(groups));
+}
+
+function ticketEl(g){
+  const pct = g.asignado > 0 ? (g.neto / g.asignado) * 100 : 0;
+  const gaugeClass = pct >= 100 ? 'over' : (pct < 85 ? 'under' : '');
+  const el = document.createElement('div');
+  el.className = 'ticket';
+  el.innerHTML = `
+    <div class="t-id">Frente ${g.frente}<span class="sub">Subdivisión ${g.subdiv}</span></div>
+    <div class="t-metric"><div class="label">Neto (ton)</div><div class="value">${fmt(g.neto)}</div></div>
+    <div class="t-metric"><div class="label">Cortas (ton)</div><div class="value">${fmt(g.cortas)}</div></div>
+    <div class="t-metric"><div class="label">Asignado (ton)</div><div class="value">${fmt(g.asignado)}</div></div>
+    <div class="t-gauge">
+      <div class="label"><span>Avance</span><span>${pct.toFixed(0)}%</span></div>
+      <div class="gauge-track"><div class="gauge-fill ${gaugeClass}" style="width:${Math.min(pct,130)}%"></div></div>
+    </div>
+  `;
+  return el;
+}
+
+function updateHero(dia, groups){
+  const neto = groups.reduce((s,g)=>s+g.neto,0);
+  const cortas = groups.reduce((s,g)=>s+g.cortas,0);
+  const asignado = groups.reduce((s,g)=>s+g.asignado,0);
+  const pct = asignado > 0 ? (neto/asignado)*100 : 0;
+
+  document.getElementById('stat-dia').textContent = dia ?? '—';
+  document.getElementById('stat-neto').textContent = fmt(neto);
+  document.getElementById('stat-cortas').textContent = fmt(cortas);
+  const avanceEl = document.getElementById('stat-avance');
+  avanceEl.textContent = pct.toFixed(1) + '%';
+  avanceEl.className = 'value ' + (pct >= 100 ? 'pos' : (pct < 85 ? 'neg' : ''));
+  document.getElementById('stat-frentes').textContent = groups.length;
+}
+
+document.getElementById('load-btn').addEventListener('click', () => {
+  const url = document.getElementById('csv-url').value.trim();
+  if(!url){ document.getElementById('status').textContent = 'Pega primero la URL del CSV publicado.'; return; }
+  loadFromUrl(false);
+  startAutoRefresh();
+});
+
+document.getElementById('sample-btn').addEventListener('click', () => {
+  parseAndRender(SAMPLE_CSV);
+  document.getElementById('status').textContent = 'Mostrando datos de ejemplo';
+});
+
+// inicio
+parseAndRender(SAMPLE_CSV);
+</script>
+</body>
+</html>
