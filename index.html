@@ -100,8 +100,8 @@
 
   /* ---------- Controls ---------- */
   .controls{
-    max-width:1080px;
-    margin:28px auto 0;
+    max-width:1180px;
+    margin:24px auto 0;
     padding:0 24px;
     display:flex;
     gap:14px;
@@ -148,15 +148,15 @@
   .controls .spacer{flex:1;}
   #status{
     font-family:'JetBrains Mono',monospace;
-    font-size:11.5px;
+    font-size:12px;
     color:#6B6A5E;
   }
 
   /* ---------- Ticket stubs (signature element) ---------- */
   main{
-    max-width:1080px;
+    max-width:1180px;
     margin:0 auto;
-    padding:36px 24px 80px;
+    padding:30px 24px 80px;
   }
   .group-label{
     font-family:'JetBrains Mono',monospace;
@@ -175,11 +175,11 @@
     display:grid;
     grid-template-columns:2fr 1fr 1fr 1.5fr;
     align-items:center;
-    gap:18px;
+    gap:22px;
     background:var(--white);
     border:1px dashed var(--ink);
     border-radius:var(--radius);
-    padding:18px 22px;
+    padding:20px 24px;
     margin-bottom:0;
   }
   .ticket::before, .ticket::after{
@@ -198,7 +198,7 @@
   .t-id{
     font-family:'Fraunces',serif;
     font-weight:600;
-    font-size:20px;
+    font-size:24px;
   }
   .t-id .sub{
     display:block;
@@ -221,7 +221,7 @@
   .t-metric .value{
     font-family:'JetBrains Mono',monospace;
     font-weight:700;
-    font-size:17px;
+    font-size:19px;
   }
   .t-gauge{display:flex;flex-direction:column;gap:6px;}
   .t-gauge .label{
@@ -280,6 +280,20 @@
   .front-progress-fill{height:100%;background:var(--cane);transition:width .4s ease;}
   .front-progress-fill.over{background:var(--amber);}
 
+  .collapse-btn{
+    margin-top:8px;
+    padding:6px 10px;
+    font-size:10.5px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    background:transparent;
+    color:#4B4A42;
+    border:1px solid var(--line);
+    min-width:0;
+  }
+  .collapse-btn:hover{background:var(--paper-dim);border-color:var(--ink);}
+  .subdiv-wrap.is-collapsed{display:none;}
+
   /* ---------- Subdivisiones anidadas ---------- */
   .frente-block{margin-bottom:14px;}
   .subdiv-wrap{
@@ -289,26 +303,26 @@
   }
   .subdiv-row{
     display:grid;
-    grid-template-columns:1fr 1fr 1fr 1.6fr;
+    grid-template-columns:1.4fr 1fr 1fr 1.6fr;
     align-items:center;
-    gap:14px;
-    padding:10px 16px;
-    font-size:13px;
+    gap:18px;
+    padding:12px 18px;
+    font-size:14px;
   }
   .subdiv-row + .subdiv-row{border-top:1px dotted var(--line);}
   .s-id{
     font-family:'JetBrains Mono',monospace;
-    font-size:12px;
+    font-size:13.5px;
     color:#4B4A42;
   }
   .s-id-sub{
     color:#8B8A7C;
-    font-size:10.5px;
+    font-size:11px;
   }
   .s-metric{color:#4B4A42;}
   .s-label{
     font-family:'JetBrains Mono',monospace;
-    font-size:10px;
+    font-size:11px;
     text-transform:uppercase;
     letter-spacing:.05em;
     color:#8B8A7C;
@@ -328,13 +342,13 @@
   }
   .s-share-pct{
     font-family:'JetBrains Mono',monospace;
-    font-size:10.5px;
+    font-size:11.5px;
     color:#6B6A5E;
     white-space:nowrap;
   }
 
   @media (max-width:760px){
-    .ticket{grid-template-columns:1fr 1fr;}
+    .ticket{grid-template-columns:1.4fr 1fr 1fr;}
     .ticket::before,.ticket::after{display:none;}
     .subdiv-row{grid-template-columns:1fr 1fr;}
     .subdiv-wrap{margin-left:8px;padding-left:10px;}
@@ -407,8 +421,12 @@
 
 <div class="controls">
   <div class="field">
-    <label for="dia-select">Día de zafra</label>
-    <select id="dia-select"></select>
+    <label for="dia-desde">Desde día</label>
+    <select id="dia-desde"></select>
+  </div>
+  <div class="field">
+    <label for="dia-hasta">Hasta día</label>
+    <select id="dia-hasta"></select>
   </div>
   <div class="field" style="flex:1;">
     <label>Fuente de datos</label>
@@ -537,10 +555,21 @@ function parseAndRender(csvText){
 }
 
 function buildDiaSelector(){
-  const dias = [...new Set(rows.map(r => r.dia_zafra))].sort((a,b)=>b-a);
-  const sel = document.getElementById('dia-select');
-  sel.innerHTML = dias.map(d => `<option value="${d}">Día ${d}</option>`).join('');
-  sel.onchange = render;
+  const dias = [...new Set(rows.map(r => Number(r.dia_zafra)).filter(Number.isFinite))].sort((a,b)=>b-a);
+  const desde = document.getElementById('dia-desde');
+  const hasta = document.getElementById('dia-hasta');
+  const options = dias.map(d => `<option value="${d}">Día ${d}</option>`).join('');
+  desde.innerHTML = options;
+  hasta.innerHTML = options;
+
+  // Por defecto se muestra solo el día más reciente, conservando el comportamiento anterior.
+  if(dias.length){
+    desde.value = String(dias[0]);
+    hasta.value = String(dias[0]);
+  }
+
+  desde.onchange = render;
+  hasta.onchange = render;
 }
 
 function fmt(n){
@@ -567,16 +596,24 @@ function calcTonAsignado(neto, tractor1, tractor2){
 }
 
 function render(){
-  const sel = document.getElementById('dia-select');
-  const dia = sel.value ? Number(sel.value) : null;
-  const dayRows = rows.filter(r => r.dia_zafra === dia);
+  const desdeEl = document.getElementById('dia-desde');
+  const hastaEl = document.getElementById('dia-hasta');
+  const desde = desdeEl.value ? Number(desdeEl.value) : null;
+  const hasta = hastaEl.value ? Number(hastaEl.value) : null;
+  const rangoMin = desde != null && hasta != null ? Math.min(desde, hasta) : (desde ?? hasta);
+  const rangoMax = desde != null && hasta != null ? Math.max(desde, hasta) : (desde ?? hasta);
+  const dayRows = rows.filter(r => {
+    const d = Number(r.dia_zafra);
+    return Number.isFinite(d) && rangoMin != null && d >= rangoMin && d <= rangoMax;
+  });
+  const diaLabel = rangoMin == null ? null : (rangoMin === rangoMax ? `Día ${rangoMin}` : `Días ${rangoMin}–${rangoMax}`);
 
   const main = document.getElementById('main');
   main.innerHTML = '';
 
   if(!dayRows.length){
     main.innerHTML = '<div class="empty">Sin registros para este día de zafra.</div>';
-    updateHero(dia, []);
+    updateHero(diaLabel, []);
     return;
   }
 
@@ -610,7 +647,7 @@ function render(){
 
   frenteList.forEach(f => main.appendChild(frenteEl(f)));
 
-  updateHero(dia, frenteList);
+  updateHero(diaLabel, frenteList);
 }
 
 function frenteEl(f){
@@ -622,7 +659,10 @@ function frenteEl(f){
   const el = document.createElement('div');
   el.className = 'ticket';
   el.innerHTML = `
-    <div class="t-id">Frente ${f.frente}<span class="sub">${Object.keys(f.subdivs).length} subdivisión(es)</span></div>
+    <div class="t-id">
+      <div>Frente ${f.frente}<span class="sub">${Object.keys(f.subdivs).length} subdivisión(es)</span></div>
+      <button class="collapse-btn" type="button">Ocultar subdivisiones</button>
+    </div>
     <div class="t-metric"><div class="label">Neto (ton)</div><div class="value">${fmt(f.neto)}</div></div>
     <div class="t-metric"><div class="label">Cortas (ton)</div><div class="value">${fmt(f.cortas)}</div></div>
     <div class="front-progress">
@@ -637,6 +677,12 @@ function frenteEl(f){
   Object.values(f.subdivs)
     .sort((a,b)=> b.neto - a.neto)
     .forEach(s => subWrap.appendChild(subdivEl(s, f.neto)));
+
+  const collapseBtn = el.querySelector('.collapse-btn');
+  collapseBtn.addEventListener('click', () => {
+    const collapsed = subWrap.classList.toggle('is-collapsed');
+    collapseBtn.textContent = collapsed ? 'Mostrar subdivisiones' : 'Ocultar subdivisiones';
+  });
 
   const outer = document.createElement('div');
   outer.className = 'frente-block';
@@ -666,12 +712,12 @@ function subdivEl(s, frenteNetoTotal){
   return el;
 }
 
-function updateHero(dia, groups){
+function updateHero(diaLabel, groups){
   const neto = groups.reduce((s,g)=>s+g.neto,0);
   const cortas = groups.reduce((s,g)=>s+g.cortas,0);
   const avanceGlobal = META_GLOBAL_CORTAS > 0 ? (cortas / META_GLOBAL_CORTAS) * 100 : 0;
 
-  document.getElementById('stat-dia').textContent = dia ?? '—';
+  document.getElementById('stat-dia').textContent = diaLabel ?? '—';
   document.getElementById('stat-neto').textContent = fmt(neto);
   document.getElementById('stat-cortas').textContent = fmt(cortas);
   document.getElementById('stat-frentes').textContent = groups.length;
@@ -684,10 +730,6 @@ startAutoRefresh();
 document.getElementById('print-btn').addEventListener('click', () => {
   window.print();
 });
-
-// inicio
-loadFromUrl(false);
-startAutoRefresh();
 </script>
 </body>
 </html>
