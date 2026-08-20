@@ -347,11 +347,120 @@
     white-space:nowrap;
   }
 
+  /* ---------- Panel de tractores ---------- */
+  .tractor-panel{
+    max-width:1080px;
+    margin:22px auto 0;
+    padding:0 24px;
+  }
+  .tractor-card{
+    background:var(--white);
+    border:1px solid var(--ink);
+    padding:20px 22px;
+  }
+  .tractor-head{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:18px;
+    flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .tractor-title{
+    font-family:'Fraunces',serif;
+    font-size:24px;
+    font-weight:600;
+    margin:0;
+  }
+  .tractor-help{
+    margin:4px 0 0;
+    color:#6B6A5E;
+    font-size:12px;
+    line-height:1.45;
+  }
+  .tractor-summary{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(130px,1fr));
+    gap:12px;
+    margin-bottom:16px;
+  }
+  .tractor-stat{
+    border:1px solid var(--line);
+    padding:12px 14px;
+    background:var(--paper);
+  }
+  .tractor-stat .label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:#6B6A5E;
+    margin-bottom:5px;
+  }
+  .tractor-stat .value{
+    font-family:'JetBrains Mono',monospace;
+    font-size:18px;
+    font-weight:700;
+  }
+  .tractor-table-wrap{overflow:auto;}
+  .tractor-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  .tractor-table th{
+    text-align:left;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:#6B6A5E;
+    padding:9px 10px;
+    border-bottom:1px solid var(--ink);
+    white-space:nowrap;
+  }
+  .tractor-table td{
+    padding:9px 10px;
+    border-bottom:1px dotted var(--line);
+    white-space:nowrap;
+  }
+  .tractor-table td.num{
+    font-family:'JetBrains Mono',monospace;
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
+  .tractor-group{
+    background:var(--paper-dim);
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:#4B4A42;
+  }
+  .tractor-empty{
+    padding:22px 10px;
+    color:#6B6A5E;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+  }
+  .tractor-note{
+    margin-top:12px;
+    color:#8B8A7C;
+    font-size:11px;
+    line-height:1.5;
+  }
+
   @media (max-width:760px){
     .ticket{grid-template-columns:1.4fr 1fr 1fr;}
     .ticket::before,.ticket::after{display:none;}
     .subdiv-row{grid-template-columns:1fr 1fr;}
     .subdiv-wrap{margin-left:8px;padding-left:10px;}
+  }
+  @media (max-width:760px){
+    .tractor-summary{grid-template-columns:1fr;}
+    .tractor-panel{padding:0 12px;}
+    .tractor-card{padding:16px 14px;}
+    .tractor-title{font-size:21px;}
   }
   @page{
     size: letter portrait;
@@ -393,7 +502,7 @@
 <header class="hero">
   <p class="eyebrow">Zafra · Control de recepción</p>
   <h1 class="title">Resumen diario<br><em>por frente y subdivisión</em></h1>
-  <p class="hero-sub">Tonelaje Metrico Neto y toneladas cortas recibidas, agrupado por frente y subdivisión para el día de zafra seleccionado. Datos desde la tabla <strong>Historicoestable</strong>.</p>
+  <p class="hero-sub">Tonelaje neto y toneladas cortas recibidas, agrupado por frente y subdivisión para el día de zafra seleccionado. Datos desde la tabla <strong>Historicoestable</strong>.</p>
 
   <div class="hero-stat-row">
     <div class="hero-stat">
@@ -401,11 +510,11 @@
       <div class="value" id="stat-dia">—</div>
     </div>
     <div class="hero-stat">
-      <div class="label">Neto total (Tons.Metricas)</div>
+      <div class="label">Neto total (ton)</div>
       <div class="value" id="stat-neto">—</div>
     </div>
     <div class="hero-stat">
-      <div class="label">Cortas total (Tons. Cortas)</div>
+      <div class="label">Cortas total (ton)</div>
       <div class="value" id="stat-cortas">—</div>
     </div>
     <div class="hero-stat">
@@ -413,7 +522,7 @@
       <div class="value" id="stat-frentes">—</div>
     </div>
     <div class="hero-stat">
-      <div class="label">Avance global · meta 450,000 tonn Metricas</div>
+      <div class="label">Avance global · meta 450,000 ton</div>
       <div class="value" id="stat-avance-global">—</div>
     </div>
   </div>
@@ -442,6 +551,22 @@
   <span id="refresh-indicator" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6B6A5E;"></span>
 </div>
 
+<section class="tractor-panel" id="tractor-panel">
+  <div class="tractor-card">
+    <div class="tractor-head">
+      <div>
+        <h2 class="tractor-title">Viajes por tractor</h2>
+        <p class="tractor-help">Selecciona un tractor para ver sus viajes dentro del rango de días elegido, con asignación de neto por secuencia y acumulados por frente, día y subdivisión.</p>
+      </div>
+      <div class="field">
+        <label for="tractor-select">Tractor</label>
+        <select id="tractor-select" style="min-width:220px;"></select>
+      </div>
+    </div>
+    <div id="tractor-content"></div>
+  </div>
+</section>
+
 <main id="main"></main>
 
 <footer>
@@ -463,6 +588,9 @@ const REQUIRED_COLS = ['frente','subdiv','dia_zafra','neto_ton','Tractor1','Trac
 
 let rows = [];
 let subdivNames = {}; // LOCATIONID -> description
+let selectedTractor = '';
+let sequenceField = null;
+let rowCounter = 0;
 let refreshTimer = null;
 const REFRESH_MS = 10 * 60 * 1000; // los datos de origen se sincronizan cada 10 min
 const META_GLOBAL_CORTAS = 450000;
@@ -600,6 +728,196 @@ function calcTonAsignado(neto, tractor1, tractor2){
   return soloUno ? neto : neto / 2;
 }
 
+function normalizeTractor(v){
+  if(v == null) return '';
+  const s = String(v).trim();
+  if(!s) return '';
+  const n = Number(s.replace(',', '.'));
+  if(Number.isFinite(n) && n === 0) return '';
+  if(['null','undefined','nan','0','0.0','0.00'].includes(s.toLowerCase())) return '';
+  return s;
+}
+
+function detectSequenceField(){
+  const fields = rows.length ? Object.keys(rows[0]) : [];
+  const candidates = ['secuencia','Secuencia','SECUENCIA','sequence','Sequence','SEQ','seq'];
+  sequenceField = candidates.find(c => fields.includes(c)) || null;
+  return sequenceField;
+}
+
+function getSequence(row, fallbackIndex){
+  const field = sequenceField || detectSequenceField();
+  const value = field ? row[field] : null;
+  if(value != null && String(value).trim() !== '') return String(value).trim();
+  return `Registro ${fallbackIndex + 1}`;
+}
+
+function uniqueTractorsForRows(groupRows){
+  const set = new Set();
+  groupRows.forEach(r => {
+    const t1 = normalizeTractor(r.Tractor1);
+    const t2 = normalizeTractor(r.Tractor2);
+    if(t1) set.add(t1);
+    if(t2) set.add(t2);
+  });
+  return [...set];
+}
+
+function assignedNetoForPair(neto, tractor1, tractor2, selected){
+  const t1 = normalizeTractor(tractor1);
+  const t2 = normalizeTractor(tractor2);
+  if(!selected) return 0;
+  if(!t1 && !t2) return 0;
+  if(t1 && t2 && t1 === t2) return selected === t1 ? neto : 0;
+  if(t1 && !t2) return selected === t1 ? neto : 0;
+  if(t2 && !t1) return selected === t2 ? neto : 0;
+  if(t1 && t2) return (selected === t1 || selected === t2) ? neto / 2 : 0;
+  return 0;
+}
+
+function buildTractorSequenceData(dayRows, tractor){
+  const groups = {};
+  dayRows.forEach((r, index) => {
+    const t1 = normalizeTractor(r.Tractor1);
+    const t2 = normalizeTractor(r.Tractor2);
+    if(!t1 && !t2) return;
+
+    const dia = Number(r.dia_zafra);
+    const seq = getSequence(r, index);
+    const key = `${dia}||${String(r.frente ?? '—')}||${String(r.subdiv ?? '—')}||${seq}`;
+    if(!groups[key]){
+      groups[key] = {
+        dia,
+        sequence: seq,
+        rows: [],
+        tractors: new Set(),
+        neto: 0,
+        asignado: 0,
+        frente: r.frente,
+        subdiv: r.subdiv
+      };
+    }
+    const g = groups[key];
+    g.rows.push(r);
+    if(t1) g.tractors.add(t1);
+    if(t2) g.tractors.add(t2);
+    const neto = toNum(r.neto_ton);
+    g.neto += neto;
+  });
+
+  return Object.values(groups).map(g => {
+    const tractors = [...g.tractors];
+    let asignado = 0;
+    if(tractors.length === 1){
+      asignado = tractors[0] === tractor ? g.neto : 0;
+    }else if(tractors.length === 2){
+      asignado = tractors.includes(tractor) ? g.neto / 2 : 0;
+    }else if(tractors.length > 2){
+      // Caso excepcional: si una misma secuencia trae más de dos tractores,
+      // se reparte equitativamente para no duplicar el neto total.
+      asignado = tractors.includes(tractor) ? g.neto / tractors.length : 0;
+    }
+    return {...g, tractors, asignado};
+  }).filter(g => g.asignado !== 0 || g.tractors.includes(tractor));
+}
+
+function fmt3(n){
+  return Number(n || 0).toLocaleString('en-US', {minimumFractionDigits:3, maximumFractionDigits:3});
+}
+
+function buildTractorSelector(dayRows){
+  const select = document.getElementById('tractor-select');
+  if(!select) return;
+  const available = new Set();
+  dayRows.forEach(r => {
+    const t1 = normalizeTractor(r.Tractor1);
+    const t2 = normalizeTractor(r.Tractor2);
+    if(t1) available.add(t1);
+    if(t2) available.add(t2);
+  });
+  const tractors = [...available].sort((a,b) => {
+    const na = Number(a), nb = Number(b);
+    if(Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+    return a.localeCompare(b, 'es', {numeric:true, sensitivity:'base'});
+  });
+  if(selectedTractor && !available.has(selectedTractor)) selectedTractor = '';
+  select.innerHTML = `<option value="">Seleccione un tractor…</option>` + tractors.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  select.value = selectedTractor;
+}
+
+function escapeHtml(v){
+  return String(v).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+}
+
+function renderTractorPanel(dayRows){
+  const content = document.getElementById('tractor-content');
+  if(!content) return;
+  buildTractorSelector(dayRows);
+  if(!selectedTractor){
+    content.innerHTML = '<div class="tractor-empty">Selecciona un tractor para consultar sus viajes y acumulados.</div>';
+    return;
+  }
+
+  const records = buildTractorSequenceData(dayRows, selectedTractor)
+    .sort((a,b) => a.dia - b.dia || String(a.sequence).localeCompare(String(b.sequence), 'es', {numeric:true}));
+
+  if(!records.length){
+    content.innerHTML = '<div class="tractor-empty">El tractor seleccionado no tiene viajes en el rango de días elegido.</div>';
+    return;
+  }
+
+  const totalNeto = records.reduce((sum,r) => sum + r.asignado, 0);
+    const byFront = {};
+  const byDay = {};
+  const bySub = {};
+  records.forEach(r => {
+    const frontKey = String(r.frente ?? '—');
+    const dayKey = String(r.dia);
+    const subKey = `${dayKey}||${String(r.frente ?? '—')}||${String(r.subdiv ?? '—')}`;
+    byFront[frontKey] = (byFront[frontKey] || 0) + r.asignado;
+    byDay[dayKey] = (byDay[dayKey] || 0) + r.asignado;
+    bySub[subKey] = (bySub[subKey] || 0) + r.asignado;
+  });
+
+  const frontRows = Object.entries(byFront).sort((a,b) => Number(a[0]) - Number(b[0]));
+  const dayRowsAgg = Object.entries(byDay).sort((a,b) => Number(a[0]) - Number(b[0]));
+  const subRowsAgg = Object.entries(bySub).map(([key,total]) => {
+    const [dia,frente,subdiv] = key.split('||');
+    return {dia,frente,subdiv,total};
+  }).sort((a,b) => Number(a.dia)-Number(b.dia) || Number(a.frente)-Number(b.frente) || String(a.subdiv).localeCompare(String(b.subdiv),'es',{numeric:true}));
+
+  let html = `
+    <div class="tractor-summary">
+      <div class="tractor-stat"><div class="label">Tractor seleccionado</div><div class="value">${escapeHtml(selectedTractor)}</div></div>
+      <div class="tractor-stat"><div class="label">Secuencias / viajes</div><div class="value">${records.length.toLocaleString('en-US')}</div></div>
+      <div class="tractor-stat"><div class="label">Neto asignado (ton)</div><div class="value">${fmt3(totalNeto)}</div></div>
+    </div>
+    <div class="tractor-table-wrap">
+      <table class="tractor-table">
+        <thead><tr><th>Día</th><th>Frente</th><th>Subdivisión</th><th>Secuencia</th><th>Tractores de la secuencia</th><th>Neto total secuencia</th><th>Neto asignado al tractor</th></tr></thead>
+        <tbody>`;
+
+  records.forEach(r => {
+    html += `<tr><td>${r.dia}</td><td>${escapeHtml(r.frente)}</td><td>${escapeHtml(r.subdiv)}</td><td>${escapeHtml(r.sequence)}</td><td>${r.tractors.map(escapeHtml).join(' / ')}</td><td class="num">${fmt3(r.neto)}</td><td class="num"><strong>${fmt3(r.asignado)}</strong></td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+
+  html += `<div class="group-label" style="margin-top:22px;">Acumulado por frente</div><div class="tractor-table-wrap"><table class="tractor-table"><thead><tr><th>Frente</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
+  frontRows.forEach(([front,total]) => { html += `<tr><td>Frente ${escapeHtml(front)}</td><td class="num">${fmt3(total)}</td></tr>`; });
+  html += `</tbody></table></div>`;
+
+  html += `<div class="group-label" style="margin-top:22px;">Acumulado por día</div><div class="tractor-table-wrap"><table class="tractor-table"><thead><tr><th>Día de zafra</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
+  dayRowsAgg.forEach(([day,total]) => { html += `<tr><td>Día ${escapeHtml(day)}</td><td class="num">${fmt3(total)}</td></tr>`; });
+  html += `</tbody></table></div>`;
+
+  html += `<div class="group-label" style="margin-top:22px;">Acumulado por día · frente · subdivisión</div><div class="tractor-table-wrap"><table class="tractor-table"><thead><tr><th>Día</th><th>Frente</th><th>Subdivisión</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
+  subRowsAgg.forEach(r => { html += `<tr><td>${escapeHtml(r.dia)}</td><td>Frente ${escapeHtml(r.frente)}</td><td>${escapeHtml(r.subdiv)}</td><td class="num">${fmt3(r.total)}</td></tr>`; });
+  html += `</tbody></table></div>`;
+
+  html += `<div class="tractor-note">Regla de asignación: si solo aparece un tractor válido en la secuencia, recibe el 100% del neto; si Tractor1 y Tractor2 son el mismo, recibe el 100%; si son dos tractores distintos, cada uno recibe el 50%. Los valores vacíos, null y 0 no aparecen en la lista de tractores.</div>`;
+  content.innerHTML = html;
+}
+
 function render(){
   const desdeEl = document.getElementById('dia-desde');
   const hastaEl = document.getElementById('dia-hasta');
@@ -616,6 +934,8 @@ function render(){
 
   const main = document.getElementById('main');
   main.innerHTML = '';
+  detectSequenceField();
+  renderTractorPanel(dayRows);
 
   if(!dayRows.length){
     main.innerHTML = '<div class="empty">Sin registros para este día de zafra.</div>';
@@ -671,12 +991,12 @@ function frenteEl(f, diasSeleccionados){
       <div>Frente ${f.frente}<span class="sub">${Object.keys(f.subdivs).length} subdivisión(es)</span></div>
       <button class="collapse-btn" type="button">Ocultar subdivisiones</button>
     </div>
-    <div class="t-metric"><div class="label">Neto (Tons. Metricas)</div><div class="value">${fmt(f.neto)}</div></div>
-    <div class="t-metric"><div class="label">Cortas (Tons. Cortas)</div><div class="value">${fmt(f.cortas)}</div></div>
+    <div class="t-metric"><div class="label">Neto (ton)</div><div class="value">${fmt(f.neto)}</div></div>
+    <div class="t-metric"><div class="label">Cortas (ton)</div><div class="value">${fmt(f.cortas)}</div></div>
     <div class="front-progress">
       <div class="label"><span>Meta ${metaTexto} · ${metaDiariaTexto}</span><span class="value">${avance.toFixed(1)}%</span></div>
       <div class="front-progress-track"><div class="front-progress-fill${avance > 100 ? ' over' : ''}" style="width:${avanceBar}%"></div></div>
-      <div class="label"><span>${fmt(f.cortas)} / ${meta > 0 ? fmt(meta) : '—'} Tons.Cortas</span><span>${avance > 100 ? 'sobre meta' : 'del frente'}</span></div>
+      <div class="label"><span>${fmt(f.cortas)} / ${meta > 0 ? fmt(meta) : '—'} ton</span><span>${avance > 100 ? 'sobre meta' : 'del frente'}</span></div>
     </div>
   `;
 
@@ -710,8 +1030,8 @@ function subdivEl(s, frenteNetoTotal){
   el.className = 'subdiv-row';
   el.innerHTML = `
     <div class="s-id">${titulo}</div>
-    <div class="s-metric"><span class="s-label">Neto</span> ${fmt(s.neto)} Tons. Metricas</div>
-    <div class="s-metric"><span class="s-label">Cortas</span> ${fmt(s.cortas)} Tons. Cortas</div>
+    <div class="s-metric"><span class="s-label">Neto</span> ${fmt(s.neto)} ton</div>
+    <div class="s-metric"><span class="s-label">Cortas</span> ${fmt(s.cortas)} ton</div>
     <div class="s-share">
       <div class="s-share-track"><div class="s-share-fill" style="width:${Math.min(share,100)}%"></div></div>
       <span class="s-share-pct">${share.toFixed(0)}% del frente</span>
@@ -731,9 +1051,24 @@ function updateHero(diaLabel, groups, diasSeleccionados){
   document.getElementById('stat-frentes').textContent = groups.length;
   document.getElementById('stat-avance-global').textContent = `${avanceGlobal.toFixed(1)}%`;
   const globalLabel = document.querySelector('#stat-avance-global')?.previousElementSibling;
-  if(globalLabel) globalLabel.textContent = `Avance global · meta ${fmt(META_GLOBAL_CORTAS)} Tons.Cortas`;
+  if(globalLabel) globalLabel.textContent = `Avance global · meta ${fmt(META_GLOBAL_CORTAS)} ton`;
   const status = document.getElementById('status');
 }
+
+document.getElementById('tractor-select').addEventListener('change', (e) => {
+  selectedTractor = e.target.value;
+  const desdeEl = document.getElementById('dia-desde');
+  const hastaEl = document.getElementById('dia-hasta');
+  const desde = desdeEl.value ? Number(desdeEl.value) : null;
+  const hasta = hastaEl.value ? Number(hastaEl.value) : null;
+  const min = desde != null && hasta != null ? Math.min(desde, hasta) : (desde ?? hasta);
+  const max = desde != null && hasta != null ? Math.max(desde, hasta) : (desde ?? hasta);
+  const dayRows = rows.filter(r => {
+    const d = Number(r.dia_zafra);
+    return Number.isFinite(d) && min != null && d >= min && d <= max;
+  });
+  renderTractorPanel(dayRows);
+});
 
 loadFromUrl(false);
 startAutoRefresh();
