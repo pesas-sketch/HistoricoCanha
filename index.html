@@ -413,7 +413,7 @@
       <div class="value" id="stat-frentes">—</div>
     </div>
     <div class="hero-stat">
-      <div class="label">Avance global · meta 6,500 ton</div>
+      <div class="label">Avance global · meta 450,000 ton</div>
       <div class="value" id="stat-avance-global">—</div>
     </div>
   </div>
@@ -465,7 +465,8 @@ let rows = [];
 let subdivNames = {}; // LOCATIONID -> description
 let refreshTimer = null;
 const REFRESH_MS = 10 * 60 * 1000; // los datos de origen se sincronizan cada 10 min
-const META_GLOBAL_CORTAS = 6500;
+const META_GLOBAL_CORTAS = 450000;
+const META_DIARIA_GLOBAL_CORTAS = 6500;
 const META_FRENTE = {
   '1': 1450,
   '2': 1450,
@@ -473,12 +474,16 @@ const META_FRENTE = {
   '6': 1450
 };
 const META_RESTANTE_FRENTES = ['3','4','7'];
-const META_RESTANTE = META_GLOBAL_CORTAS - Object.values(META_FRENTE).reduce((a,b)=>a+b,0);
+const META_RESTANTE = META_DIARIA_GLOBAL_CORTAS - Object.values(META_FRENTE).reduce((a,b)=>a+b,0);
 META_RESTANTE_FRENTES.forEach(f => META_FRENTE[f] = META_RESTANTE / META_RESTANTE_FRENTES.length);
 
-function metaFrente(frente){
+function metaFrenteDiaria(frente){
   const key = String(frente).trim();
   return META_FRENTE[key] ?? 0;
+}
+
+function metaFrente(frente, diasSeleccionados){
+  return metaFrenteDiaria(frente) * Math.max(1, diasSeleccionados || 0);
 }
 
 function loadSubdivNames(){
@@ -606,6 +611,7 @@ function render(){
     const d = Number(r.dia_zafra);
     return Number.isFinite(d) && rangoMin != null && d >= rangoMin && d <= rangoMax;
   });
+  const diasSeleccionados = [...new Set(dayRows.map(r => Number(r.dia_zafra)).filter(Number.isFinite))].length;
   const diaLabel = rangoMin == null ? null : (rangoMin === rangoMax ? `Día ${rangoMin}` : `Días ${rangoMin}–${rangoMax}`);
 
   const main = document.getElementById('main');
@@ -613,7 +619,7 @@ function render(){
 
   if(!dayRows.length){
     main.innerHTML = '<div class="empty">Sin registros para este día de zafra.</div>';
-    updateHero(diaLabel, []);
+    updateHero(diaLabel, [], diasSeleccionados);
     return;
   }
 
@@ -645,16 +651,18 @@ function render(){
   groupLabel.textContent = `Frentes activos — ${frenteList.length}`;
   main.appendChild(groupLabel);
 
-  frenteList.forEach(f => main.appendChild(frenteEl(f)));
+  frenteList.forEach(f => main.appendChild(frenteEl(f, diasSeleccionados)));
 
-  updateHero(diaLabel, frenteList);
+  updateHero(diaLabel, frenteList, diasSeleccionados);
 }
 
-function frenteEl(f){
-  const meta = metaFrente(f.frente);
+function frenteEl(f, diasSeleccionados){
+  const metaDiaria = metaFrenteDiaria(f.frente);
+  const meta = metaFrente(f.frente, diasSeleccionados);
   const avance = meta > 0 ? (f.cortas / meta) * 100 : 0;
   const avanceBar = Math.min(avance, 100);
   const metaTexto = meta > 0 ? `${fmt(meta)} ton` : 'Sin meta';
+  const metaDiariaTexto = metaDiaria > 0 ? `${fmt(metaDiaria)} ton/día` : 'Sin meta';
 
   const el = document.createElement('div');
   el.className = 'ticket';
@@ -666,7 +674,7 @@ function frenteEl(f){
     <div class="t-metric"><div class="label">Neto (ton)</div><div class="value">${fmt(f.neto)}</div></div>
     <div class="t-metric"><div class="label">Cortas (ton)</div><div class="value">${fmt(f.cortas)}</div></div>
     <div class="front-progress">
-      <div class="label"><span>Meta ${metaTexto}</span><span class="value">${avance.toFixed(1)}%</span></div>
+      <div class="label"><span>Meta ${metaTexto} · ${metaDiariaTexto}</span><span class="value">${avance.toFixed(1)}%</span></div>
       <div class="front-progress-track"><div class="front-progress-fill${avance > 100 ? ' over' : ''}" style="width:${avanceBar}%"></div></div>
       <div class="label"><span>${fmt(f.cortas)} / ${meta > 0 ? fmt(meta) : '—'} ton</span><span>${avance > 100 ? 'sobre meta' : 'del frente'}</span></div>
     </div>
@@ -712,7 +720,7 @@ function subdivEl(s, frenteNetoTotal){
   return el;
 }
 
-function updateHero(diaLabel, groups){
+function updateHero(diaLabel, groups, diasSeleccionados){
   const neto = groups.reduce((s,g)=>s+g.neto,0);
   const cortas = groups.reduce((s,g)=>s+g.cortas,0);
   const avanceGlobal = META_GLOBAL_CORTAS > 0 ? (cortas / META_GLOBAL_CORTAS) * 100 : 0;
@@ -722,6 +730,9 @@ function updateHero(diaLabel, groups){
   document.getElementById('stat-cortas').textContent = fmt(cortas);
   document.getElementById('stat-frentes').textContent = groups.length;
   document.getElementById('stat-avance-global').textContent = `${avanceGlobal.toFixed(1)}%`;
+  const globalLabel = document.querySelector('#stat-avance-global')?.previousElementSibling;
+  if(globalLabel) globalLabel.textContent = `Avance global · meta ${fmt(META_GLOBAL_CORTAS)} ton`;
+  const status = document.getElementById('status');
 }
 
 loadFromUrl(false);
