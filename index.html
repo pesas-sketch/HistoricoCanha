@@ -450,12 +450,30 @@
     line-height:1.5;
   }
 
+  /* ---------- Reportes separados ---------- */
+  .report-tabs{max-width:1080px;margin:24px auto 0;padding:0 24px;display:flex;gap:8px;border-bottom:1px solid var(--line);}
+  .report-tab{background:transparent;color:var(--ink);border:1px solid var(--line);border-bottom:none;padding:11px 18px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.05em;}
+  .report-tab.active{background:var(--ink);color:var(--white);border-color:var(--ink);}
+  .report-view{display:none;}
+  .report-view.active{display:block;}
+  .tractor-group-title{font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#4B4A42;margin:24px 0 8px;padding:9px 12px;background:var(--paper-dim);border-left:3px solid var(--cane);}
+  .tractor-subtotal{font-weight:700;}
+
   @media (max-width:760px){
     .ticket{grid-template-columns:1.4fr 1fr 1fr;}
     .ticket::before,.ticket::after{display:none;}
     .subdiv-row{grid-template-columns:1fr 1fr;}
     .subdiv-wrap{margin-left:8px;padding-left:10px;}
   }
+  /* ---------- Reportes separados ---------- */
+  .report-tabs{max-width:1080px;margin:24px auto 0;padding:0 24px;display:flex;gap:8px;border-bottom:1px solid var(--line);}
+  .report-tab{background:transparent;color:var(--ink);border:1px solid var(--line);border-bottom:none;padding:11px 18px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.05em;}
+  .report-tab.active{background:var(--ink);color:var(--white);border-color:var(--ink);}
+  .report-view{display:none;}
+  .report-view.active{display:block;}
+  .tractor-group-title{font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#4B4A42;margin:24px 0 8px;padding:9px 12px;background:var(--paper-dim);border-left:3px solid var(--cane);}
+  .tractor-subtotal{font-weight:700;}
+
   @media (max-width:760px){
     .tractor-summary{grid-template-columns:1fr;}
     .tractor-panel{padding:0 12px;}
@@ -551,23 +569,32 @@
   <span id="refresh-indicator" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6B6A5E;"></span>
 </div>
 
-<section class="tractor-panel" id="tractor-panel">
-  <div class="tractor-card">
-    <div class="tractor-head">
-      <div>
-        <h2 class="tractor-title">Viajes por tractor</h2>
-        <p class="tractor-help">Selecciona un tractor para ver sus viajes dentro del rango de días elegido, con asignación de neto por secuencia y acumulados por frente, día y subdivisión.</p>
-      </div>
-      <div class="field">
-        <label for="tractor-select">Tractor</label>
-        <select id="tractor-select" style="min-width:220px;"></select>
-      </div>
-    </div>
-    <div id="tractor-content"></div>
-  </div>
+<div class="report-tabs">
+  <button class="report-tab active" type="button" data-report="general">Reporte general</button>
+  <button class="report-tab" type="button" data-report="tractor">Reporte por tractor</button>
+</div>
+
+<section class="report-view active" id="report-general">
+  <main id="main"></main>
 </section>
 
-<main id="main"></main>
+<section class="report-view" id="report-tractor">
+  <section class="tractor-panel" id="tractor-panel">
+    <div class="tractor-card">
+      <div class="tractor-head">
+        <div>
+          <h2 class="tractor-title">Viajes por tractor</h2>
+          <p class="tractor-help">Selecciona un tractor para ver sus viajes dentro del rango de días elegido. El detalle y los acumulados se agrupan por día de zafra y subdivisión.</p>
+        </div>
+        <div class="field">
+          <label for="tractor-select">Tractor</label>
+          <select id="tractor-select" style="min-width:220px;"></select>
+        </div>
+      </div>
+      <div id="tractor-content"></div>
+    </div>
+  </section>
+</section>
 
 <footer>
   Fuente: tabla Historicoestable (AppSheet → Google Sheets · Historico.xlsx). Generado como página estática para GitHub Pages.
@@ -859,7 +886,7 @@ function renderTractorPanel(dayRows){
   }
 
   const records = buildTractorSequenceData(dayRows, selectedTractor)
-    .sort((a,b) => a.dia - b.dia || String(a.sequence).localeCompare(String(b.sequence), 'es', {numeric:true}));
+    .sort((a,b) => a.dia - b.dia || String(a.subdiv).localeCompare(String(b.subdiv), 'es', {numeric:true}) || Number(a.frente)-Number(b.frente) || String(a.sequence).localeCompare(String(b.sequence), 'es', {numeric:true}));
 
   if(!records.length){
     content.innerHTML = '<div class="tractor-empty">El tractor seleccionado no tiene viajes en el rango de días elegido.</div>';
@@ -867,24 +894,24 @@ function renderTractorPanel(dayRows){
   }
 
   const totalNeto = records.reduce((sum,r) => sum + r.asignado, 0);
-    const byFront = {};
+  const byDaySub = {};
+  const byFront = {};
   const byDay = {};
-  const bySub = {};
   records.forEach(r => {
-    const frontKey = String(r.frente ?? '—');
     const dayKey = String(r.dia);
-    const subKey = `${dayKey}||${String(r.frente ?? '—')}||${String(r.subdiv ?? '—')}`;
+    const subKey = `${dayKey}||${String(r.subdiv ?? '—')}`;
+    byDaySub[subKey] = (byDaySub[subKey] || 0) + r.asignado;
+    const frontKey = String(r.frente ?? '—');
     byFront[frontKey] = (byFront[frontKey] || 0) + r.asignado;
     byDay[dayKey] = (byDay[dayKey] || 0) + r.asignado;
-    bySub[subKey] = (bySub[subKey] || 0) + r.asignado;
   });
 
-  const frontRows = Object.entries(byFront).sort((a,b) => Number(a[0]) - Number(b[0]));
-  const dayRowsAgg = Object.entries(byDay).sort((a,b) => Number(a[0]) - Number(b[0]));
-  const subRowsAgg = Object.entries(bySub).map(([key,total]) => {
-    const [dia,frente,subdiv] = key.split('||');
-    return {dia,frente,subdiv,total};
-  }).sort((a,b) => Number(a.dia)-Number(b.dia) || Number(a.frente)-Number(b.frente) || String(a.subdiv).localeCompare(String(b.subdiv),'es',{numeric:true}));
+  const daySubRows = Object.entries(byDaySub).map(([key,total]) => {
+    const [dia,subdiv] = key.split('||');
+    return {dia,subdiv,total};
+  }).sort((a,b) => Number(a.dia)-Number(b.dia) || String(a.subdiv).localeCompare(String(b.subdiv),'es',{numeric:true}));
+  const frontRows = Object.entries(byFront).sort((a,b) => Number(a[0])-Number(b[0]));
+  const dayRowsAgg = Object.entries(byDay).sort((a,b) => Number(a[0])-Number(b[0]));
 
   let html = `
     <div class="tractor-summary">
@@ -892,14 +919,25 @@ function renderTractorPanel(dayRows){
       <div class="tractor-stat"><div class="label">Secuencias / viajes</div><div class="value">${records.length.toLocaleString('en-US')}</div></div>
       <div class="tractor-stat"><div class="label">Neto asignado (ton)</div><div class="value">${fmt3(totalNeto)}</div></div>
     </div>
-    <div class="tractor-table-wrap">
-      <table class="tractor-table">
-        <thead><tr><th>Día</th><th>Frente</th><th>Subdivisión</th><th>Secuencia</th><th>Tractores de la secuencia</th><th>Neto total secuencia</th><th>Neto asignado al tractor</th></tr></thead>
-        <tbody>`;
 
+    <div class="group-label" style="margin-top:22px;">Detalle agrupado por día y subdivisión</div>`;
+
+  let lastGroup = '';
   records.forEach(r => {
-    html += `<tr><td>${r.dia}</td><td>${escapeHtml(r.frente)}</td><td>${escapeHtml(r.subdiv)}</td><td>${escapeHtml(r.sequence)}</td><td>${r.tractors.map(escapeHtml).join(' / ')}</td><td class="num">${fmt3(r.neto)}</td><td class="num"><strong>${fmt3(r.asignado)}</strong></td></tr>`;
+    const group = `${r.dia}||${r.subdiv}`;
+    if(group !== lastGroup){
+      const subtotal = byDaySub[group] || 0;
+      html += `<div class="tractor-group-title">Día ${escapeHtml(r.dia)} · Subdivisión ${escapeHtml(r.subdiv)} <span style="float:right" class="tractor-subtotal">${fmt3(subtotal)} ton</span></div>`;
+      lastGroup = group;
+    }
+    html += `<div class="tractor-table-wrap"><table class="tractor-table"><tbody>`;
+    // table header only once per group is visually cleaner; rows are appended below
+    html += `<tr><td>${escapeHtml(r.sequence)}</td><td>Frente ${escapeHtml(r.frente)}</td><td>${r.tractors.map(escapeHtml).join(' / ')}</td><td class="num">${fmt3(r.neto)}</td><td class="num"><strong>${fmt3(r.asignado)}</strong></td></tr>`;
+    html += `</tbody></table></div>`;
   });
+
+  html += `<div class="tractor-table-wrap" style="margin-top:22px;"><table class="tractor-table"><thead><tr><th>Día</th><th>Subdivisión</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
+  daySubRows.forEach(r => { html += `<tr><td>Día ${escapeHtml(r.dia)}</td><td>${escapeHtml(r.subdiv)}</td><td class="num"><strong>${fmt3(r.total)}</strong></td></tr>`; });
   html += `</tbody></table></div>`;
 
   html += `<div class="group-label" style="margin-top:22px;">Acumulado por frente</div><div class="tractor-table-wrap"><table class="tractor-table"><thead><tr><th>Frente</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
@@ -910,11 +948,7 @@ function renderTractorPanel(dayRows){
   dayRowsAgg.forEach(([day,total]) => { html += `<tr><td>Día ${escapeHtml(day)}</td><td class="num">${fmt3(total)}</td></tr>`; });
   html += `</tbody></table></div>`;
 
-  html += `<div class="group-label" style="margin-top:22px;">Acumulado por día · frente · subdivisión</div><div class="tractor-table-wrap"><table class="tractor-table"><thead><tr><th>Día</th><th>Frente</th><th>Subdivisión</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
-  subRowsAgg.forEach(r => { html += `<tr><td>${escapeHtml(r.dia)}</td><td>Frente ${escapeHtml(r.frente)}</td><td>${escapeHtml(r.subdiv)}</td><td class="num">${fmt3(r.total)}</td></tr>`; });
-  html += `</tbody></table></div>`;
-
-  html += `<div class="tractor-note">Regla de asignación: si solo aparece un tractor válido en la secuencia, recibe el 100% del neto; si Tractor1 y Tractor2 son el mismo, recibe el 100%; si son dos tractores distintos, cada uno recibe el 50%. Los valores vacíos, null y 0 no aparecen en la lista de tractores.</div>`;
+  html += `<div class="tractor-note">Agrupación principal: día de zafra + subdivisión. Cada secuencia conserva su neto total y se asigna al tractor seleccionado según la regla 100% para un solo tractor o tractor repetido, y 50% a cada tractor cuando son dos tractores diferentes. Los valores vacíos, null y 0 no aparecen en la lista.</div>`;
   content.innerHTML = html;
 }
 
