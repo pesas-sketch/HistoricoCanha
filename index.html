@@ -393,7 +393,7 @@
 <header class="hero">
   <p class="eyebrow">Zafra · Control de recepción</p>
   <h1 class="title">Resumen diario<br><em>por frente y subdivisión</em></h1>
-  <p class="hero-sub">Tonelaje neto y toneladas cortas recibidas, agrupado por frente y subdivisión para el día de zafra seleccionado. Datos desde la tabla <strong>Historicoestable</strong>.</p>
+  <p class="hero-sub">Tonelaje Metrico Neto y toneladas cortas recibidas, agrupado por frente y subdivisión para el día de zafra seleccionado. Datos desde la tabla <strong>Historicoestable</strong>.</p>
 
   <div class="hero-stat-row">
     <div class="hero-stat">
@@ -401,11 +401,11 @@
       <div class="value" id="stat-dia">—</div>
     </div>
     <div class="hero-stat">
-      <div class="label">Neto total (ton)</div>
+      <div class="label">Neto total (Tons.Metricas)</div>
       <div class="value" id="stat-neto">—</div>
     </div>
     <div class="hero-stat">
-      <div class="label">Cortas total (ton)</div>
+      <div class="label">Cortas total (Tons. Cortas)</div>
       <div class="value" id="stat-cortas">—</div>
     </div>
     <div class="hero-stat">
@@ -413,7 +413,7 @@
       <div class="value" id="stat-frentes">—</div>
     </div>
     <div class="hero-stat">
-      <div class="label">Avance global · meta 450,000 ton</div>
+      <div class="label">Avance global · meta 450,000 tonn Metricas</div>
       <div class="value" id="stat-avance-global">—</div>
     </div>
   </div>
@@ -671,12 +671,12 @@ function frenteEl(f, diasSeleccionados){
       <div>Frente ${f.frente}<span class="sub">${Object.keys(f.subdivs).length} subdivisión(es)</span></div>
       <button class="collapse-btn" type="button">Ocultar subdivisiones</button>
     </div>
-    <div class="t-metric"><div class="label">Neto (ton)</div><div class="value">${fmt(f.neto)}</div></div>
-    <div class="t-metric"><div class="label">Cortas (ton)</div><div class="value">${fmt(f.cortas)}</div></div>
+    <div class="t-metric"><div class="label">Neto (Tons. Metricas)</div><div class="value">${fmt(f.neto)}</div></div>
+    <div class="t-metric"><div class="label">Cortas (Tons. Cortas)</div><div class="value">${fmt(f.cortas)}</div></div>
     <div class="front-progress">
       <div class="label"><span>Meta ${metaTexto} · ${metaDiariaTexto}</span><span class="value">${avance.toFixed(1)}%</span></div>
       <div class="front-progress-track"><div class="front-progress-fill${avance > 100 ? ' over' : ''}" style="width:${avanceBar}%"></div></div>
-      <div class="label"><span>${fmt(f.cortas)} / ${meta > 0 ? fmt(meta) : '—'} ton</span><span>${avance > 100 ? 'sobre meta' : 'del frente'}</span></div>
+      <div class="label"><span>${fmt(f.cortas)} / ${meta > 0 ? fmt(meta) : '—'} Tons.Cortas</span><span>${avance > 100 ? 'sobre meta' : 'del frente'}</span></div>
     </div>
   `;
 
@@ -710,8 +710,8 @@ function subdivEl(s, frenteNetoTotal){
   el.className = 'subdiv-row';
   el.innerHTML = `
     <div class="s-id">${titulo}</div>
-    <div class="s-metric"><span class="s-label">Neto</span> ${fmt(s.neto)} ton</div>
-    <div class="s-metric"><span class="s-label">Cortas</span> ${fmt(s.cortas)} ton</div>
+    <div class="s-metric"><span class="s-label">Neto</span> ${fmt(s.neto)} Tons. Metricas</div>
+    <div class="s-metric"><span class="s-label">Cortas</span> ${fmt(s.cortas)} Tons. Cortas</div>
     <div class="s-share">
       <div class="s-share-track"><div class="s-share-fill" style="width:${Math.min(share,100)}%"></div></div>
       <span class="s-share-pct">${share.toFixed(0)}% del frente</span>
@@ -731,7 +731,7 @@ function updateHero(diaLabel, groups, diasSeleccionados){
   document.getElementById('stat-frentes').textContent = groups.length;
   document.getElementById('stat-avance-global').textContent = `${avanceGlobal.toFixed(1)}%`;
   const globalLabel = document.querySelector('#stat-avance-global')?.previousElementSibling;
-  if(globalLabel) globalLabel.textContent = `Avance global · meta ${fmt(META_GLOBAL_CORTAS)} ton`;
+  if(globalLabel) globalLabel.textContent = `Avance global · meta ${fmt(META_GLOBAL_CORTAS)} Tons.Cortas`;
   const status = document.getElementById('status');
 }
 
