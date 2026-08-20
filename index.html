@@ -173,7 +173,7 @@
   .ticket{
     position:relative;
     display:grid;
-    grid-template-columns:2fr 1fr 1fr;
+    grid-template-columns:2fr 1fr 1fr 1.5fr;
     align-items:center;
     gap:18px;
     background:var(--white);
@@ -257,6 +257,28 @@
     font-size:13px;
     border:1px dashed var(--line);
   }
+
+  .front-progress{display:flex;flex-direction:column;gap:6px;}
+  .front-progress .label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:#6B6A5E;
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .front-progress .value{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;}
+  .front-progress-track{
+    height:8px;
+    background:var(--paper-dim);
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .front-progress-fill{height:100%;background:var(--cane);transition:width .4s ease;}
+  .front-progress-fill.over{background:var(--amber);}
 
   /* ---------- Subdivisiones anidadas ---------- */
   .frente-block{margin-bottom:14px;}
@@ -376,6 +398,10 @@
       <div class="label">Frentes activos</div>
       <div class="value" id="stat-frentes">—</div>
     </div>
+    <div class="hero-stat">
+      <div class="label">Avance global · meta 6,500 ton</div>
+      <div class="value" id="stat-avance-global">—</div>
+    </div>
   </div>
 </header>
 
@@ -409,7 +435,7 @@
    CÓMO CONECTAR DATOS REALES
    1. En Google Sheets: Archivo → Compartir → Publicar en la web
       → elegir la hoja "Historicoestable" → formato CSV → Publicar.
-   2. Pega esa URL en el campo "URL CSV publicado" y pulsa "Cargar datos".
+   2. La URL de Historicoestable está configurada de forma estática en HISTORICO_URL.
    3. Columnas esperadas (nombres tal cual en AppSheet):
       frente, subdiv, dia_zafra, neto_ton, TonsCortas, TON_ASIGNADO_BASE
 ------------------------------------------------------------------*/
@@ -421,6 +447,21 @@ let rows = [];
 let subdivNames = {}; // LOCATIONID -> description
 let refreshTimer = null;
 const REFRESH_MS = 10 * 60 * 1000; // los datos de origen se sincronizan cada 10 min
+const META_GLOBAL_CORTAS = 6500;
+const META_FRENTE = {
+  '1': 1450,
+  '2': 1450,
+  '5': 1450,
+  '6': 1450
+};
+const META_RESTANTE_FRENTES = ['3','4','7'];
+const META_RESTANTE = META_GLOBAL_CORTAS - Object.values(META_FRENTE).reduce((a,b)=>a+b,0);
+META_RESTANTE_FRENTES.forEach(f => META_FRENTE[f] = META_RESTANTE / META_RESTANTE_FRENTES.length);
+
+function metaFrente(frente){
+  const key = String(frente).trim();
+  return META_FRENTE[key] ?? 0;
+}
 
 function loadSubdivNames(){
   const url = 'https://raw.githubusercontent.com/pesas-sketch/HistoricoCanha/main/TSUBDIVS.json';
@@ -546,7 +587,7 @@ function render(){
     if(!frentes[fKey]) frentes[fKey] = {frente:r.frente, neto:0, cortas:0, asignado:0, subdivs:{}};
     const f = frentes[fKey];
     const neto = toNum(r.neto_ton);
-    const cortas = calcTonsCortas(neto);
+    const cortas = (r.TonsCortas != null && r.TonsCortas !== "") ? toNum(r.TonsCortas) : calcTonsCortas(neto);
     const asignado = calcTonAsignado(neto, r.Tractor1, r.Tractor2);
 
     f.neto += neto;
@@ -560,9 +601,7 @@ function render(){
     f.subdivs[sKey].asignado += asignado;
   }
 
-  const frenteList = Object.values(frentes).sort((a,b) => {
-  return Number(a.frente) - Number(b.frente);
-});
+  const frenteList = Object.values(frentes).sort((a,b)=> Number(a.frente) - Number(b.frente));
 
   const groupLabel = document.createElement('div');
   groupLabel.className = 'group-label';
@@ -575,12 +614,22 @@ function render(){
 }
 
 function frenteEl(f){
+  const meta = metaFrente(f.frente);
+  const avance = meta > 0 ? (f.cortas / meta) * 100 : 0;
+  const avanceBar = Math.min(avance, 100);
+  const metaTexto = meta > 0 ? `${fmt(meta)} ton` : 'Sin meta';
+
   const el = document.createElement('div');
   el.className = 'ticket';
   el.innerHTML = `
     <div class="t-id">Frente ${f.frente}<span class="sub">${Object.keys(f.subdivs).length} subdivisión(es)</span></div>
     <div class="t-metric"><div class="label">Neto (ton)</div><div class="value">${fmt(f.neto)}</div></div>
     <div class="t-metric"><div class="label">Cortas (ton)</div><div class="value">${fmt(f.cortas)}</div></div>
+    <div class="front-progress">
+      <div class="label"><span>Meta ${metaTexto}</span><span class="value">${avance.toFixed(1)}%</span></div>
+      <div class="front-progress-track"><div class="front-progress-fill${avance > 100 ? ' over' : ''}" style="width:${avanceBar}%"></div></div>
+      <div class="label"><span>${fmt(f.cortas)} / ${meta > 0 ? fmt(meta) : '—'} ton</span><span>${avance > 100 ? 'sobre meta' : 'del frente'}</span></div>
+    </div>
   `;
 
   const subWrap = document.createElement('div');
@@ -620,11 +669,13 @@ function subdivEl(s, frenteNetoTotal){
 function updateHero(dia, groups){
   const neto = groups.reduce((s,g)=>s+g.neto,0);
   const cortas = groups.reduce((s,g)=>s+g.cortas,0);
+  const avanceGlobal = META_GLOBAL_CORTAS > 0 ? (cortas / META_GLOBAL_CORTAS) * 100 : 0;
 
   document.getElementById('stat-dia').textContent = dia ?? '—';
   document.getElementById('stat-neto').textContent = fmt(neto);
   document.getElementById('stat-cortas').textContent = fmt(cortas);
   document.getElementById('stat-frentes').textContent = groups.length;
+  document.getElementById('stat-avance-global').textContent = `${avanceGlobal.toFixed(1)}%`;
 }
 
 loadFromUrl(false);
