@@ -560,7 +560,9 @@ function render(){
     f.subdivs[sKey].asignado += asignado;
   }
 
-  const frenteList = Object.values(frentes).sort((a,b)=> b.neto - a.neto);
+  const frenteList = Object.values(frentes).sort((a,b) => {
+  return Number(a.frente) - Number(b.frente);
+});
 
   const groupLabel = document.createElement('div');
   groupLabel.className = 'group-label';
