@@ -385,18 +385,16 @@
     <select id="dia-select"></select>
   </div>
   <div class="field" style="flex:1;">
-    <label for="csv-url">URL CSV publicado (Historicoestable)</label>
-    <input type="text" id="csv-url" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
+    <label>Fuente de datos</label>
+    <input type="text" value="Historicoestable · Google Sheets" readonly>
   </div>
   <div class="field" style="flex:1;">
-    <label>TSUBDIVS</label>
-    <input type="text" value="GitHub · TSUBDIVS.json" readonly>
+    <label>Subdivisiones</label>
+    <input type="text" value="TSUBDIVS.json · GitHub" readonly>
   </div>
-  <button id="load-btn">Cargar datos</button>
-  <button class="ghost" id="sample-btn">Usar datos de ejemplo</button>
   <button class="ghost" id="print-btn">Imprimir / PDF</button>
   <div class="spacer"></div>
-  <span id="status">Mostrando datos de ejemplo</span>
+  <span id="status">Cargando datos…</span>
   <span id="refresh-indicator" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6B6A5E;"></span>
 </div>
 
@@ -416,17 +414,8 @@
       frente, subdiv, dia_zafra, neto_ton, TonsCortas, TON_ASIGNADO_BASE
 ------------------------------------------------------------------*/
 
+const HISTORICO_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQTRxf8Frx9Fg9A_xTG4afDfAfK2hoFKumaaS0CzmZNVgMu9iYB3vTpyHU3RmlOrA/pub?gid=1362879089&single=true&output=csv';
 const REQUIRED_COLS = ['frente','subdiv','dia_zafra','neto_ton','Tractor1','Tractor2'];
-
-const SAMPLE_CSV = `frente,subdiv,dia_zafra,neto_ton,Tractor1,Tractor2
-12,3,118,842.5,89106,89100
-12,4,118,610.0,89117,0
-7,1,118,1204.8,89108,89098
-7,2,118,455.2,89112,0
-19,1,118,980.0,89113,89112
-12,3,117,790.0,89106,89100
-7,1,117,1150.0,89108,89098
-19,1,117,900.4,89113,0`;
 
 let rows = [];
 let subdivNames = {}; // LOCATIONID -> description
@@ -468,8 +457,7 @@ function loadSubdivNames(){
 }
 
 function loadFromUrl(silent){
-  const url = document.getElementById('csv-url').value.trim();
-  if(!url) return;
+  const url = HISTORICO_URL;
   if(!silent) document.getElementById('status').textContent = 'Cargando…';
   Promise.all([
     fetch(url, {cache:'no-store'}).then(r => { if(!r.ok) throw new Error(r.status); return r.text(); }),
@@ -637,24 +625,16 @@ function updateHero(dia, groups){
   document.getElementById('stat-frentes').textContent = groups.length;
 }
 
-document.getElementById('load-btn').addEventListener('click', () => {
-  const url = document.getElementById('csv-url').value.trim();
-  if(!url){ document.getElementById('status').textContent = 'Pega primero la URL del CSV publicado.'; return; }
-  loadFromUrl(false);
-  startAutoRefresh();
-});
-
-document.getElementById('sample-btn').addEventListener('click', () => {
-  parseAndRender(SAMPLE_CSV);
-  document.getElementById('status').textContent = 'Mostrando datos de ejemplo';
-});
+loadFromUrl(false);
+startAutoRefresh();
 
 document.getElementById('print-btn').addEventListener('click', () => {
   window.print();
 });
 
 // inicio
-parseAndRender(SAMPLE_CSV);
+loadFromUrl(false);
+startAutoRefresh();
 </script>
 </body>
 </html>
