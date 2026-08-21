@@ -379,16 +379,10 @@
     line-height:1.45;
   }
   .tractor-summary{
-    display:flex;
-    flex-wrap:nowrap;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(130px,1fr));
     gap:12px;
     margin-bottom:16px;
-    width:100%;
-    overflow-x:auto;
-  }
-  .tractor-summary .tractor-stat{
-    flex:1 1 0;
-    min-width:0;
   }
   .tractor-stat{
     border:1px solid var(--line);
@@ -473,14 +467,7 @@
   }
 
   @media (max-width:760px){
-    .tractor-summary{
-      flex-wrap:nowrap;
-      overflow-x:auto;
-    }
-    .tractor-summary .tractor-stat{
-      flex:0 0 31%;
-      min-width:180px;
-    }
+    .tractor-summary{grid-template-columns:1fr;}
     .tractor-panel{padding:0 12px;}
     .tractor-card{padding:16px 14px;}
     .tractor-title{font-size:21px;}
@@ -518,7 +505,7 @@
     color:#8B8A7C;
     border-top:1px solid var(--line);
   }
-</style>
+.subdiv-ref{font-weight:400;opacity:.65;font-size:.86em;margin-left:4px}.tractor-group-title .subdiv-ref{font-family:'JetBrains Mono',monospace;letter-spacing:.02em}</style>
 </head>
 <body>
 
@@ -620,6 +607,7 @@ const REQUIRED_COLS = ['frente','subdiv','dia_zafra','neto_ton','Tractor1','Trac
 
 let rows = [];
 let subdivNames = {}; // LOCATIONID -> description
+let subdivNamesLoaded = false;
 let selectedTractor = '';
 let sequenceField = null;
 let rowCounter = 0;
@@ -646,37 +634,38 @@ function metaFrente(frente, diasSeleccionados){
   return metaFrenteDiaria(frente) * Math.max(1, diasSeleccionados || 0);
 }
 
+function normalizeId(v){
+  if(v == null) return '';
+  let s = String(v).trim();
+  if(/^\d+\.0+$/.test(s)) s = s.replace(/\.0+$/, '');
+  return s;
+}
+
+function getSubdivName(value){
+  const key = normalizeId(value);
+  if(!key) return '';
+  return subdivNames[key] || subdivNames[key.replace(/^0+(?=\d)/,'')] || '';
+}
+
 function loadSubdivNames(){
   const url = 'https://raw.githubusercontent.com/pesas-sketch/HistoricoCanha/main/TSUBDIVS.json';
+  subdivNamesLoaded = false;
   return fetch(url, {cache:'no-store'})
     .then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
     .then(data => {
       subdivNames = {};
       if(!Array.isArray(data)) throw new Error('TSUBDIVS.json no contiene un arreglo JSON válido');
-
       data.forEach(row => {
-        // TSUBDIVS tiene LOCATIONID como identificador completo y también
-        // el campo SUB. Para el cruce con Historicoestable usamos SUB cuando
-        // Historicoestable.subdiv contiene el número de subdivisión.
-        const sub = row.sub;
-        const locationId = row.LOCATIONID;
-        const description = row.DESCRIPTION ?? row.description;
-        if(description == null) return;
-
-        if(sub != null && String(sub).trim() !== '') {
-          // Conserva la primera descripción para cada SUB y permite
-          // posteriormente intentar el LOCATIONID completo si existe.
-          const key = String(sub).trim();
-          if(subdivNames[key] == null) subdivNames[key] = description;
-        }
-        if(locationId != null && String(locationId).trim() !== '') {
-          subdivNames[String(locationId).trim()] = description;
-        }
+        const locationId = normalizeId(row.LOCATIONID);
+        const description = String(row.DESCRIPTION ?? row.description ?? '').trim();
+        if(locationId && description) subdivNames[locationId] = description;
       });
+      subdivNamesLoaded = true;
     })
     .catch(err => {
       console.warn('No se pudo cargar TSUBDIVS.json:', err.message);
       subdivNames = {};
+      subdivNamesLoaded = false;
     });
 }
 
@@ -691,7 +680,7 @@ function loadFromUrl(silent){
       const ok = parseAndRender(text);
       if(ok){
         const now = new Date();
-        document.getElementById('status').textContent = 'Datos cargados · TSUBDIVS.json actualizado desde GitHub';
+        document.getElementById('status').textContent = subdivNamesLoaded ? 'Datos cargados · TSUBDIVS.json actualizado desde GitHub' : 'Datos cargados · no se pudo cargar TSUBDIVS.json';
         document.getElementById('refresh-indicator').textContent =
           `· última carga ${now.toLocaleTimeString('es')} · auto-refresco cada 10 min`;
       }
@@ -932,12 +921,11 @@ function renderTractorPanel(dayRows){
     const group = `${r.dia}||${r.subdiv}`;
     if(group !== lastGroup){
       const subtotal = byDaySub[group] || 0;
-      const rawSub = r.subdiv == null ? '' : String(r.subdiv).trim();
-      const subName = subdivNames[rawSub] ?? subdivNames[String(toNum(r.subdiv))];
-      const subLabel = subName
-        ? `${escapeHtml(subName)} <span class="s-id-sub">(Subdiv. ${escapeHtml(rawSub)})</span>`
-        : `Subdivisión ${escapeHtml(rawSub)}`;
-      html += `<div class="tractor-group-title">Día ${escapeHtml(r.dia)} · ${subLabel} <span style="float:right" class="tractor-subtotal">${fmt3(subtotal)} ton</span></div>`;
+      const nombreSubdiv = getSubdivName(r.subdiv);
+      const etiquetaSubdiv = nombreSubdiv
+        ? `${escapeHtml(nombreSubdiv)} <span class="subdiv-ref">(Subdiv. ${escapeHtml(r.subdiv)})</span>`
+        : `Subdivisión ${escapeHtml(r.subdiv)}`;
+      html += `<div class="tractor-group-title">Día ${escapeHtml(r.dia)} · ${etiquetaSubdiv} <span style="float:right" class="tractor-subtotal">${fmt3(subtotal)} ton</span></div>`;
       lastGroup = group;
     }
     html += `<div class="tractor-table-wrap"><table class="tractor-table"><tbody>`;
@@ -1066,7 +1054,7 @@ function frenteEl(f, diasSeleccionados){
 function subdivEl(s, frenteNetoTotal){
   const share = frenteNetoTotal > 0 ? (s.neto / frenteNetoTotal) * 100 : 0;
   const rawSub = s.subdiv == null ? '' : String(s.subdiv).trim();
-  const nombre = subdivNames[rawSub] ?? subdivNames[String(toNum(s.subdiv))];
+  const nombre = getSubdivName(rawSub);
   const titulo = nombre
     ? `${nombre} <span class="s-id-sub">(Subdiv. ${rawSub})</span>`
     : `Subdivisión ${rawSub}`;
