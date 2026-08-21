@@ -379,10 +379,16 @@
     line-height:1.45;
   }
   .tractor-summary{
-    display:grid;
-    grid-template-columns:repeat(3,minmax(130px,1fr));
+    display:flex;
+    flex-wrap:nowrap;
     gap:12px;
     margin-bottom:16px;
+    width:100%;
+    overflow-x:auto;
+  }
+  .tractor-summary .tractor-stat{
+    flex:1 1 0;
+    min-width:0;
   }
   .tractor-stat{
     border:1px solid var(--line);
@@ -467,7 +473,14 @@
   }
 
   @media (max-width:760px){
-    .tractor-summary{grid-template-columns:1fr;}
+    .tractor-summary{
+      flex-wrap:nowrap;
+      overflow-x:auto;
+    }
+    .tractor-summary .tractor-stat{
+      flex:0 0 31%;
+      min-width:180px;
+    }
     .tractor-panel{padding:0 12px;}
     .tractor-card{padding:16px 14px;}
     .tractor-title{font-size:21px;}
@@ -919,7 +932,12 @@ function renderTractorPanel(dayRows){
     const group = `${r.dia}||${r.subdiv}`;
     if(group !== lastGroup){
       const subtotal = byDaySub[group] || 0;
-      html += `<div class="tractor-group-title">Día ${escapeHtml(r.dia)} · Subdivisión ${escapeHtml(r.subdiv)} <span style="float:right" class="tractor-subtotal">${fmt3(subtotal)} ton</span></div>`;
+      const rawSub = r.subdiv == null ? '' : String(r.subdiv).trim();
+      const subName = subdivNames[rawSub] ?? subdivNames[String(toNum(r.subdiv))];
+      const subLabel = subName
+        ? `${escapeHtml(subName)} <span class="s-id-sub">(Subdiv. ${escapeHtml(rawSub)})</span>`
+        : `Subdivisión ${escapeHtml(rawSub)}`;
+      html += `<div class="tractor-group-title">Día ${escapeHtml(r.dia)} · ${subLabel} <span style="float:right" class="tractor-subtotal">${fmt3(subtotal)} ton</span></div>`;
       lastGroup = group;
     }
     html += `<div class="tractor-table-wrap"><table class="tractor-table"><tbody>`;
