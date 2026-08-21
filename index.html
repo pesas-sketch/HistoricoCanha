@@ -505,6 +505,7 @@
     color:#8B8A7C;
     border-top:1px solid var(--line);
   }
+.tractor-global-controls{display:flex;justify-content:flex-end;margin:8px 0 12px}.tractor-global-toggle{border:1px solid var(--line);background:var(--paper);padding:7px 12px;cursor:pointer;font:600 11px 'JetBrains Mono',monospace;letter-spacing:.02em}.tractor-global-toggle:hover{background:var(--paper-dim)}.tractor-global-icon{display:inline-block;width:12px;font-weight:700}
 .tractor-collapsible-group{margin:0 0 10px}.tractor-collapse-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;cursor:pointer;border:0;font:inherit}.tractor-group-right{display:flex;align-items:center;gap:14px;white-space:nowrap}.tractor-collapse-icon{font-size:16px;font-weight:700;min-width:12px;text-align:center}.tractor-group-content[hidden]{display:none}.tractor-group-content .tractor-table-wrap{margin-top:0}.tractor-group-content .tractor-table{margin-top:0}.subdiv-ref{font-weight:400;opacity:.65;font-size:.86em;margin-left:4px}.tractor-group-title .subdiv-ref{font-family:'JetBrains Mono',monospace;letter-spacing:.02em}
 .tractor-day-group{margin:0 0 14px}.tractor-day-title{font-size:13px;font-weight:700;border-left:4px solid var(--cane)}.tractor-day-content{padding:4px 0 0 10px}.tractor-subgroup{margin:0 0 8px}.tractor-subgroup .tractor-group-title{margin-top:0}.tractor-day-title .tractor-subtotal{font-size:13px}
 </style>
@@ -907,7 +908,12 @@ function renderTractorPanel(dayRows){
       <div class="tractor-stat"><div class="label">Neto asignado (ton)</div><div class="value">${fmt3(totalNeto)}</div></div>
     </div>
 
-    <div class="group-label" style="margin-top:22px;">Detalle agrupado por día y subdivisión</div>`;
+    <div class="group-label" style="margin-top:22px;">Detalle agrupado por día y subdivisión</div>
+    <div class="tractor-global-controls">
+      <button class="tractor-global-toggle" id="tractor-toggle-all" type="button" aria-expanded="false">
+        <span class="tractor-global-icon">+</span> Expandir todo
+      </button>
+    </div>`;
 
   days.forEach((day, dayIndex) => {
     const dayPanelId = `tractor-day-${dayIndex}`;
@@ -915,11 +921,11 @@ function renderTractorPanel(dayRows){
     const boxCount = day.records.length;
     html += `
       <div class="tractor-day-group">
-        <button class="tractor-group-title tractor-collapse-toggle tractor-day-title" type="button" aria-expanded="true" aria-controls="${dayPanelId}">
+        <button class="tractor-group-title tractor-collapse-toggle tractor-day-title" type="button" aria-expanded="false" aria-controls="${dayPanelId}">
           <span>Día ${escapeHtml(day.dia)} · ${subCount} subdivisiones · ${boxCount} cajas</span>
-          <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(day.total)} ton</span><span class="tractor-collapse-icon">−</span></span>
+          <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(day.total)} ton</span><span class="tractor-collapse-icon">+</span></span>
         </button>
-        <div class="tractor-day-content" id="${dayPanelId}">`;
+        <div class="tractor-day-content" id="${dayPanelId}" hidden>`;
 
     Object.values(day.subdivs).forEach((sub, subIndex) => {
       const panelId = `tractor-day-${dayIndex}-sub-${subIndex}`;
@@ -946,6 +952,27 @@ function renderTractorPanel(dayRows){
   });
 
   content.innerHTML = html;
+
+  const globalToggle = document.getElementById('tractor-toggle-all');
+  if(globalToggle){
+    globalToggle.addEventListener('click', () => {
+      const dayButtons = [...content.querySelectorAll('.tractor-day-title')];
+      const subButtons = [...content.querySelectorAll('.tractor-subgroup > .tractor-collapse-toggle')];
+      const expand = globalToggle.getAttribute('aria-expanded') !== 'true';
+      [...dayButtons, ...subButtons].forEach(btn => {
+        const panel = document.getElementById(btn.getAttribute('aria-controls'));
+        if(!panel) return;
+        btn.setAttribute('aria-expanded', String(expand));
+        panel.hidden = !expand;
+        const icon = btn.querySelector('.tractor-collapse-icon');
+        if(icon) icon.textContent = expand ? '−' : '+';
+      });
+      globalToggle.setAttribute('aria-expanded', String(expand));
+      const icon = globalToggle.querySelector('.tractor-global-icon');
+      if(icon) icon.textContent = expand ? '−' : '+';
+      globalToggle.lastChild.textContent = expand ? ' Contraer todo' : ' Expandir todo';
+    });
+  }
 
   content.querySelectorAll('.tractor-collapse-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
