@@ -505,7 +505,9 @@
     color:#8B8A7C;
     border-top:1px solid var(--line);
   }
-.tractor-collapsible-group{margin:0 0 10px}.tractor-collapse-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;cursor:pointer;border:0;font:inherit}.tractor-group-right{display:flex;align-items:center;gap:14px;white-space:nowrap}.tractor-collapse-icon{font-size:16px;font-weight:700;min-width:12px;text-align:center}.tractor-group-content[hidden]{display:none}.tractor-group-content .tractor-table-wrap{margin-top:0}.tractor-group-content .tractor-table{margin-top:0}.subdiv-ref{font-weight:400;opacity:.65;font-size:.86em;margin-left:4px}.tractor-group-title .subdiv-ref{font-family:'JetBrains Mono',monospace;letter-spacing:.02em}</style>
+.tractor-collapsible-group{margin:0 0 10px}.tractor-collapse-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;cursor:pointer;border:0;font:inherit}.tractor-group-right{display:flex;align-items:center;gap:14px;white-space:nowrap}.tractor-collapse-icon{font-size:16px;font-weight:700;min-width:12px;text-align:center}.tractor-group-content[hidden]{display:none}.tractor-group-content .tractor-table-wrap{margin-top:0}.tractor-group-content .tractor-table{margin-top:0}.subdiv-ref{font-weight:400;opacity:.65;font-size:.86em;margin-left:4px}.tractor-group-title .subdiv-ref{font-family:'JetBrains Mono',monospace;letter-spacing:.02em}
+.tractor-day-group{margin:0 0 14px}.tractor-day-title{font-size:13px;font-weight:700;border-left:4px solid var(--cane)}.tractor-day-content{padding:4px 0 0 10px}.tractor-subgroup{margin:0 0 8px}.tractor-subgroup .tractor-group-title{margin-top:0}.tractor-day-title .tractor-subtotal{font-size:13px}
+</style>
 </head>
 <body>
 
@@ -612,7 +614,6 @@ let selectedTractor = '';
 let sequenceField = null;
 let rowCounter = 0;
 let refreshTimer = null;
-const REFRESH_MS = 10 * 60 * 1000; // los datos de origen se sincronizan cada 10 min
 const META_GLOBAL_CORTAS = 450000;
 const META_DIARIA_GLOBAL_CORTAS = 6500;
 const META_FRENTE = {
@@ -679,10 +680,8 @@ function loadFromUrl(silent){
     .then(([text]) => {
       const ok = parseAndRender(text);
       if(ok){
-        const now = new Date();
         document.getElementById('status').textContent = subdivNamesLoaded ? 'Datos cargados · TSUBDIVS.json actualizado desde GitHub' : 'Datos cargados · no se pudo cargar TSUBDIVS.json';
-        document.getElementById('refresh-indicator').textContent =
-          `· última carga ${now.toLocaleTimeString('es')} · auto-refresco cada 10 min`;
+        document.getElementById('refresh-indicator').textContent = '';
       }
     })
     .catch(err => {
@@ -690,10 +689,6 @@ function loadFromUrl(silent){
     });
 }
 
-function startAutoRefresh(){
-  if(refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(() => loadFromUrl(true), REFRESH_MS);
-}
 
 function parseAndRender(csvText){
   const parsed = Papa.parse(csvText.trim(), {header:true, dynamicTyping:true, skipEmptyLines:true});
@@ -888,11 +883,22 @@ function renderTractorPanel(dayRows){
   }
 
   const totalNeto = records.reduce((sum,r) => sum + r.asignado, 0);
-  const byDaySub = {};
+
+  // Primer nivel: día. Segundo nivel: subdivisión.
+  const byDay = {};
   records.forEach(r => {
-    const key = `${r.dia}||${String(r.subdiv ?? '—')}`;
-    byDaySub[key] = (byDaySub[key] || 0) + r.asignado;
+    const dayKey = String(r.dia);
+    if(!byDay[dayKey]) byDay[dayKey] = {dia:r.dia, records:[], subdivs:{}, total:0};
+    const d = byDay[dayKey];
+    d.records.push(r);
+    d.total += r.asignado;
+    const subKey = String(r.subdiv ?? '—');
+    if(!d.subdivs[subKey]) d.subdivs[subKey] = {subdiv:r.subdiv, records:[], total:0};
+    d.subdivs[subKey].records.push(r);
+    d.subdivs[subKey].total += r.asignado;
   });
+
+  const days = Object.values(byDay).sort((a,b) => Number(a.dia)-Number(b.dia));
 
   let html = `
     <div class="tractor-summary">
@@ -903,32 +909,41 @@ function renderTractorPanel(dayRows){
 
     <div class="group-label" style="margin-top:22px;">Detalle agrupado por día y subdivisión</div>`;
 
-  let lastGroup = '';
-  let groupIndex = 0;
-  records.forEach(r => {
-    const group = `${r.dia}||${r.subdiv}`;
-    if(group !== lastGroup){
-      if(lastGroup !== '') html += `</tbody></table></div></div>`;
-      const subtotal = byDaySub[group] || 0;
-      const nombreSubdiv = getSubdivName(r.subdiv);
+  days.forEach((day, dayIndex) => {
+    const dayPanelId = `tractor-day-${dayIndex}`;
+    const subCount = Object.keys(day.subdivs).length;
+    const boxCount = day.records.length;
+    html += `
+      <div class="tractor-day-group">
+        <button class="tractor-group-title tractor-collapse-toggle tractor-day-title" type="button" aria-expanded="true" aria-controls="${dayPanelId}">
+          <span>Día ${escapeHtml(day.dia)} · ${subCount} subdivisiones · ${boxCount} cajas</span>
+          <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(day.total)} ton</span><span class="tractor-collapse-icon">−</span></span>
+        </button>
+        <div class="tractor-day-content" id="${dayPanelId}">`;
+
+    Object.values(day.subdivs).forEach((sub, subIndex) => {
+      const panelId = `tractor-day-${dayIndex}-sub-${subIndex}`;
+      const nombreSubdiv = getSubdivName(sub.subdiv);
       const etiquetaSubdiv = nombreSubdiv
-        ? `${escapeHtml(nombreSubdiv)} <span class="subdiv-ref">(Subdiv. ${escapeHtml(r.subdiv)})</span>`
-        : `Subdivisión ${escapeHtml(r.subdiv)}`;
-      const panelId = `tractor-group-${groupIndex++}`;
+        ? `${escapeHtml(nombreSubdiv)} <span class="subdiv-ref">(Subdiv. ${escapeHtml(sub.subdiv)})</span>`
+        : `Subdivisión ${escapeHtml(sub.subdiv)}`;
       html += `
-        <div class="tractor-collapsible-group">
+        <div class="tractor-collapsible-group tractor-subgroup">
           <button class="tractor-group-title tractor-collapse-toggle" type="button" aria-expanded="true" aria-controls="${panelId}">
-            <span>Día ${escapeHtml(r.dia)} · ${etiquetaSubdiv}</span>
-            <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(subtotal)} ton</span><span class="tractor-collapse-icon">−</span></span>
+            <span>Día ${escapeHtml(day.dia)} · ${etiquetaSubdiv}</span>
+            <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(sub.total)} ton</span><span class="tractor-collapse-icon">−</span></span>
           </button>
           <div class="tractor-group-content" id="${panelId}">
             <div class="tractor-table-wrap"><table class="tractor-table">
               <thead><tr><th>Secuencia</th><th>Frente</th><th>Tractores</th><th>Neto total (ton)</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
-      lastGroup = group;
-    }
-    html += `<tr><td>${escapeHtml(r.sequence)}</td><td>Frente ${escapeHtml(r.frente)}</td><td>${r.tractors.map(escapeHtml).join(' / ')}</td><td class="num">${fmt3(r.neto)}</td><td class="num"><strong>${fmt3(r.asignado)}</strong></td></tr>`;
+      sub.records.forEach(r => {
+        html += `<tr><td>${escapeHtml(r.sequence)}</td><td>Frente ${escapeHtml(r.frente)}</td><td>${r.tractors.map(escapeHtml).join(' / ')}</td><td class="num">${fmt3(r.neto)}</td><td class="num"><strong>${fmt3(r.asignado)}</strong></td></tr>`;
+      });
+      html += `</tbody></table></div></div></div>`;
+    });
+
+    html += `</div></div>`;
   });
-  html += `</tbody></table></div></div></div>`;
 
   content.innerHTML = html;
 
@@ -1109,7 +1124,6 @@ document.getElementById('tractor-select').addEventListener('change', (e) => {
 });
 
 loadFromUrl(false);
-startAutoRefresh();
 
 document.getElementById('print-btn').addEventListener('click', () => {
   window.print();
