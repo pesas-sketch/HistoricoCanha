@@ -505,7 +505,7 @@
     color:#8B8A7C;
     border-top:1px solid var(--line);
   }
-.subdiv-ref{font-weight:400;opacity:.65;font-size:.86em;margin-left:4px}.tractor-group-title .subdiv-ref{font-family:'JetBrains Mono',monospace;letter-spacing:.02em}</style>
+.tractor-collapsible-group{margin:0 0 10px}.tractor-collapse-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;cursor:pointer;border:0;font:inherit}.tractor-group-right{display:flex;align-items:center;gap:14px;white-space:nowrap}.tractor-collapse-icon{font-size:16px;font-weight:700;min-width:12px;text-align:center}.tractor-group-content[hidden]{display:none}.tractor-group-content .tractor-table-wrap{margin-top:0}.tractor-group-content .tractor-table{margin-top:0}.subdiv-ref{font-weight:400;opacity:.65;font-size:.86em;margin-left:4px}.tractor-group-title .subdiv-ref{font-family:'JetBrains Mono',monospace;letter-spacing:.02em}</style>
 </head>
 <body>
 
@@ -875,7 +875,7 @@ function renderTractorPanel(dayRows){
   if(!content) return;
   buildTractorSelector(dayRows);
   if(!selectedTractor){
-    content.innerHTML = '<div class="tractor-empty">Selecciona un tractor para consultar sus viajes y acumulados.</div>';
+    content.innerHTML = '<div class="tractor-empty">Selecciona un tractor para consultar sus viajes dentro del rango de días elegido.</div>';
     return;
   }
 
@@ -889,23 +889,10 @@ function renderTractorPanel(dayRows){
 
   const totalNeto = records.reduce((sum,r) => sum + r.asignado, 0);
   const byDaySub = {};
-  const byFront = {};
-  const byDay = {};
   records.forEach(r => {
-    const dayKey = String(r.dia);
-    const subKey = `${dayKey}||${String(r.subdiv ?? '—')}`;
-    byDaySub[subKey] = (byDaySub[subKey] || 0) + r.asignado;
-    const frontKey = String(r.frente ?? '—');
-    byFront[frontKey] = (byFront[frontKey] || 0) + r.asignado;
-    byDay[dayKey] = (byDay[dayKey] || 0) + r.asignado;
+    const key = `${r.dia}||${String(r.subdiv ?? '—')}`;
+    byDaySub[key] = (byDaySub[key] || 0) + r.asignado;
   });
-
-  const daySubRows = Object.entries(byDaySub).map(([key,total]) => {
-    const [dia,subdiv] = key.split('||');
-    return {dia,subdiv,total};
-  }).sort((a,b) => Number(a.dia)-Number(b.dia) || String(a.subdiv).localeCompare(String(b.subdiv),'es',{numeric:true}));
-  const frontRows = Object.entries(byFront).sort((a,b) => Number(a[0])-Number(b[0]));
-  const dayRowsAgg = Object.entries(byDay).sort((a,b) => Number(a[0])-Number(b[0]));
 
   let html = `
     <div class="tractor-summary">
@@ -917,37 +904,45 @@ function renderTractorPanel(dayRows){
     <div class="group-label" style="margin-top:22px;">Detalle agrupado por día y subdivisión</div>`;
 
   let lastGroup = '';
+  let groupIndex = 0;
   records.forEach(r => {
     const group = `${r.dia}||${r.subdiv}`;
     if(group !== lastGroup){
+      if(lastGroup !== '') html += `</tbody></table></div></div>`;
       const subtotal = byDaySub[group] || 0;
       const nombreSubdiv = getSubdivName(r.subdiv);
       const etiquetaSubdiv = nombreSubdiv
         ? `${escapeHtml(nombreSubdiv)} <span class="subdiv-ref">(Subdiv. ${escapeHtml(r.subdiv)})</span>`
         : `Subdivisión ${escapeHtml(r.subdiv)}`;
-      html += `<div class="tractor-group-title">Día ${escapeHtml(r.dia)} · ${etiquetaSubdiv} <span style="float:right" class="tractor-subtotal">${fmt3(subtotal)} ton</span></div>`;
+      const panelId = `tractor-group-${groupIndex++}`;
+      html += `
+        <div class="tractor-collapsible-group">
+          <button class="tractor-group-title tractor-collapse-toggle" type="button" aria-expanded="true" aria-controls="${panelId}">
+            <span>Día ${escapeHtml(r.dia)} · ${etiquetaSubdiv}</span>
+            <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(subtotal)} ton</span><span class="tractor-collapse-icon">−</span></span>
+          </button>
+          <div class="tractor-group-content" id="${panelId}">
+            <div class="tractor-table-wrap"><table class="tractor-table">
+              <thead><tr><th>Secuencia</th><th>Frente</th><th>Tractores</th><th>Neto total (ton)</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
       lastGroup = group;
     }
-    html += `<div class="tractor-table-wrap"><table class="tractor-table"><tbody>`;
-    // table header only once per group is visually cleaner; rows are appended below
     html += `<tr><td>${escapeHtml(r.sequence)}</td><td>Frente ${escapeHtml(r.frente)}</td><td>${r.tractors.map(escapeHtml).join(' / ')}</td><td class="num">${fmt3(r.neto)}</td><td class="num"><strong>${fmt3(r.asignado)}</strong></td></tr>`;
-    html += `</tbody></table></div>`;
   });
+  html += `</tbody></table></div></div></div>`;
 
-  html += `<div class="tractor-table-wrap" style="margin-top:22px;"><table class="tractor-table"><thead><tr><th>Día</th><th>Subdivisión</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
-  daySubRows.forEach(r => { html += `<tr><td>Día ${escapeHtml(r.dia)}</td><td>${escapeHtml(r.subdiv)}</td><td class="num"><strong>${fmt3(r.total)}</strong></td></tr>`; });
-  html += `</tbody></table></div>`;
-
-  html += `<div class="group-label" style="margin-top:22px;">Acumulado por frente</div><div class="tractor-table-wrap"><table class="tractor-table"><thead><tr><th>Frente</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
-  frontRows.forEach(([front,total]) => { html += `<tr><td>Frente ${escapeHtml(front)}</td><td class="num">${fmt3(total)}</td></tr>`; });
-  html += `</tbody></table></div>`;
-
-  html += `<div class="group-label" style="margin-top:22px;">Acumulado por día</div><div class="tractor-table-wrap"><table class="tractor-table"><thead><tr><th>Día de zafra</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
-  dayRowsAgg.forEach(([day,total]) => { html += `<tr><td>Día ${escapeHtml(day)}</td><td class="num">${fmt3(total)}</td></tr>`; });
-  html += `</tbody></table></div>`;
-
-  html += `<div class="tractor-note">Agrupación principal: día de zafra + subdivisión. Cada secuencia conserva su neto total y se asigna al tractor seleccionado según la regla 100% para un solo tractor o tractor repetido, y 50% a cada tractor cuando son dos tractores diferentes. Los valores vacíos, null y 0 no aparecen en la lista.</div>`;
   content.innerHTML = html;
+
+  content.querySelectorAll('.tractor-collapse-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const panel = document.getElementById(btn.getAttribute('aria-controls'));
+      if(!panel) return;
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!open));
+      panel.hidden = open;
+      const icon = btn.querySelector('.tractor-collapse-icon');
+      if(icon) icon.textContent = open ? '+' : '−';
+    });
+  });
 }
 
 function render(){
