@@ -713,10 +713,10 @@ function buildDiaSelector(){
   hasta.innerHTML = options;
 
   // Por defecto se muestra solo el día más reciente, conservando el comportamiento anterior.
-  if(dias.length){
-    desde.value = String(dias[0]);
-    hasta.value = String(dias[0]);
-  }
+ if(dias.length){
+  desde.value = String(dias[dias.length - 1]); // primer día
+  hasta.value = String(dias[0]);               // último día
+}
 
   desde.onchange = render;
   hasta.onchange = render;
