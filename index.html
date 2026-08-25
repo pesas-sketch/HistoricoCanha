@@ -934,11 +934,11 @@ function renderTractorPanel(dayRows){
         ? `${escapeHtml(nombreSubdiv)} <span class="subdiv-ref">(Subdiv. ${escapeHtml(sub.subdiv)})</span>`
         : `Subdivisión ${escapeHtml(sub.subdiv)}`;
       html += `
-        <div class="tractor-collapsible-group tractor-subgroup">
-          <button class="tractor-group-title tractor-collapse-toggle" type="button" aria-expanded="true" aria-controls="${panelId}">
-            <span>Día ${escapeHtml(day.dia)} · ${etiquetaSubdiv}</span>
-            <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(sub.total)} ton</span><span class="tractor-collapse-icon">−</span></span>
-          </button>
+  <div class="tractor-collapsible-group tractor-subgroup">
+    <button class="tractor-group-title tractor-collapse-toggle" type="button" aria-expanded="true" aria-controls="${panelId}">
+      <span>Día ${escapeHtml(day.dia)} · ${etiquetaSubdiv} · ${sub.records.length} cajas</span>
+      <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(sub.total)} ton</span><span class="tractor-collapse-icon">−</span></span>
+    </button>
           <div class="tractor-group-content" id="${panelId}">
             <div class="tractor-table-wrap"><table class="tractor-table">
               <thead><tr><th>Secuencia</th><th>Frente</th><th>Tractores</th><th>Neto total (ton)</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
