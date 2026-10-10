@@ -518,6 +518,7 @@
 .contrato-row:focus-visible{outline:2px solid var(--cane);outline-offset:-2px;}
 .contrato-total td{border-top:1px solid var(--ink);border-bottom:none;font-weight:700;}
 .contrato-hint{margin:8px 0 0;color:#8B8A7C;font-size:11px;}
+.contrato-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
 </style>
 </head>
 <body>
@@ -644,6 +645,7 @@ let selectedTractor = '';
 let selectedContrato = '';
 let diaOrden = 'asc'; // 'asc' o 'desc'
 function cmpDia(a, b){ return diaOrden === 'desc' ? b - a : a - b; }
+let contratoSecOpen = {frente:true, detalle:true}; // secciones visibles en el detalle de contrato
 let contratoField = null;
 let transportistaField = null;
 let sequenceField = null;
@@ -1258,15 +1260,23 @@ function renderContratoDetalle(contratoRows, content){
       <div class="tractor-stat"><div class="label">Cortas (ton)</div><div class="value">${fmt3(totalCortas)}</div></div>
     </div>
 
-    <div class="group-label" style="margin-top:22px;">Resumen por frente</div>
+    <div class="group-label contrato-section-head" style="margin-top:22px;">
+      <span>Resumen por frente</span>
+      <button class="tractor-global-toggle contrato-sec-toggle" type="button" data-sec="frente" aria-expanded="${contratoSecOpen.frente}" aria-controls="contrato-sec-frente"><span class="tractor-global-icon">${contratoSecOpen.frente ? '−' : '+'}</span> ${contratoSecOpen.frente ? 'Contraer' : 'Mostrar'}</button>
+    </div>
+    <div id="contrato-sec-frente"${contratoSecOpen.frente ? '' : ' hidden'}>
     <div class="tractor-table-wrap"><table class="tractor-table">
       <thead><tr><th>Frente</th><th>Registros</th><th>Neto (ton)</th><th>Cortas (ton)</th></tr></thead><tbody>`;
   frenteList.forEach(f => {
     html += `<tr><td>Frente ${escapeHtml(f.frente)}</td><td class="num">${f.registros.toLocaleString('en-US')}</td><td class="num">${fmt3(f.neto)}</td><td class="num">${fmt3(f.cortas)}</td></tr>`;
   });
-  html += `</tbody></table></div>
+  html += `</tbody></table></div></div>
 
-    <div class="group-label" style="margin-top:22px;">Detalle agrupado por día y subdivisión</div>
+    <div class="group-label contrato-section-head" style="margin-top:22px;">
+      <span>Detalle agrupado por día y subdivisión</span>
+      <button class="tractor-global-toggle contrato-sec-toggle" type="button" data-sec="detalle" aria-expanded="${contratoSecOpen.detalle}" aria-controls="contrato-sec-detalle"><span class="tractor-global-icon">${contratoSecOpen.detalle ? '−' : '+'}</span> ${contratoSecOpen.detalle ? 'Contraer' : 'Mostrar'}</button>
+    </div>
+    <div id="contrato-sec-detalle"${contratoSecOpen.detalle ? '' : ' hidden'}>
     <div class="tractor-global-controls">
       <button class="tractor-global-toggle" id="contrato-toggle-all" type="button" aria-expanded="false">
         <span class="tractor-global-icon">+</span> Expandir todo
@@ -1309,8 +1319,23 @@ function renderContratoDetalle(contratoRows, content){
     html += `</div></div>`;
   });
 
+  html += '</div>';
   content.innerHTML = html;
   wireCollapsibles(content, 'contrato-toggle-all');
+
+  content.querySelectorAll('.contrato-sec-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const panel = document.getElementById(btn.getAttribute('aria-controls'));
+      if(!panel) return;
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      contratoSecOpen[btn.dataset.sec] = !open;
+      btn.setAttribute('aria-expanded', String(!open));
+      panel.hidden = open;
+      const icon = btn.querySelector('.tractor-global-icon');
+      if(icon) icon.textContent = open ? '+' : '−';
+      btn.lastChild.textContent = open ? ' Mostrar' : ' Contraer';
+    });
+  });
 }
 
 function render(){
