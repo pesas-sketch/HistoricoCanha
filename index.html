@@ -522,6 +522,17 @@
 .tractor-table th.num{text-align:right;}
 .tractor-global-toggle{color:var(--ink);}
 .tractor-subgroup > .tractor-collapse-toggle{font-size:12px;font-weight:600;line-height:1.35;}
+
+/* Celular: tarjeta de frente y filas de subdivisión (reporte general) */
+@media (max-width:760px){
+  .ticket{grid-template-columns:1fr 1fr;gap:14px 16px;padding:16px;}
+  .ticket .t-id,
+  .ticket .front-progress{grid-column:1 / -1;}
+  .subdiv-row{grid-template-columns:1fr 1fr;gap:8px 12px;padding:12px 8px;}
+  .subdiv-row .s-id,
+  .subdiv-row .s-share{grid-column:1 / -1;}
+  .subdiv-wrap{margin-left:6px;padding-left:10px;}
+}
 </style>
 </head>
 <body>
