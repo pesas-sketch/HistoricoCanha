@@ -521,6 +521,8 @@
 .contrato-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .tractor-table th.num{text-align:right;}
 .tractor-global-toggle{color:var(--ink);}
+.tractor-collapse-toggle:hover{background:#D5CFBD;}
+.report-tab:not(.active):hover{background:var(--paper-dim);border-color:var(--ink);}
 .tractor-subgroup > .tractor-collapse-toggle{font-size:12px;font-weight:600;line-height:1.35;}
 
 /* Celular: tarjeta de frente y filas de subdivisión (reporte general) */
@@ -590,7 +592,7 @@
 
 <div class="report-tabs">
   <button class="report-tab active" type="button" data-report="general">Reporte general</button>
-  <button class="report-tab" type="button" data-report="tractor">Reporte por tractor</button>
+  <button class="report-tab" type="button" data-report="tractor">Reporte tiro interno</button>
   <button class="report-tab" type="button" data-report="contrato">Reporte por contrato</button>
 </div>
 
