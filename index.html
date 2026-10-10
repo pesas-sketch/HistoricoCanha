@@ -528,7 +528,7 @@
 <header class="hero">
   <p class="eyebrow">Zafra · Control de recepción</p>
   <h1 class="title">Resumen diario<br><em>por frente y subdivisión</em></h1>
-  <p class="hero-sub">Tonelaje neto y toneladas cortas recibidas, agrupado por frente y subdivisión para el día de zafra seleccionado.</p>
+  <p class="hero-sub">Toneladas métricas y toneladas cortas recibidas, agrupado por frente y subdivisión para el día de zafra seleccionado.</p>
 
   <div class="hero-stat-row">
     <div class="hero-stat">
@@ -536,7 +536,7 @@
       <div class="value" id="stat-dia">—</div>
     </div>
     <div class="hero-stat">
-      <div class="label">Neto total (ton)</div>
+      <div class="label">Métricas totales (ton)</div>
       <div class="value" id="stat-neto">—</div>
     </div>
     <div class="hero-stat">
@@ -949,7 +949,7 @@ function renderTractorPanel(dayRows){
     <div class="tractor-summary">
       <div class="tractor-stat"><div class="label">Tractor seleccionado</div><div class="value">${escapeHtml(selectedTractor)}</div></div>
       <div class="tractor-stat"><div class="label">Secuencias / viajes</div><div class="value">${records.length.toLocaleString('en-US')}</div></div>
-      <div class="tractor-stat"><div class="label">Neto asignado (ton)</div><div class="value">${fmt3(totalNeto)}</div></div>
+      <div class="tractor-stat"><div class="label">Métricas asignadas (ton)</div><div class="value">${fmt3(totalNeto)}</div></div>
     </div>
 
     <div class="group-label" style="margin-top:22px;">Detalle agrupado por día y subdivisión</div>
@@ -985,7 +985,7 @@ function renderTractorPanel(dayRows){
     </button>
           <div class="tractor-group-content" id="${panelId}">
             <div class="tractor-table-wrap"><table class="tractor-table">
-              <thead><tr><th>Secuencia</th><th>Frente</th><th>Tractores</th><th class="num">Neto total (ton)</th><th class="num">Neto asignado (ton)</th></tr></thead><tbody>`;
+              <thead><tr><th>Secuencia</th><th>Frente</th><th>Tractores</th><th class="num">Métricas totales (ton)</th><th class="num">Métricas asignadas (ton)</th></tr></thead><tbody>`;
       sub.records.forEach(r => {
         html += `<tr><td>${escapeHtml(r.sequence)}</td><td>Frente ${escapeHtml(r.frente)}</td><td>${r.tractors.map(escapeHtml).join(' / ')}</td><td class="num">${fmt3(r.neto)}</td><td class="num"><strong>${fmt3(r.asignado)}</strong></td></tr>`;
       });
@@ -1160,13 +1160,13 @@ function renderContratoResumen(dayRows, content){
     <div class="tractor-summary contrato-summary">
       <div class="tractor-stat"><div class="label">Contratos</div><div class="value">${list.length.toLocaleString('en-US')}</div></div>
       <div class="tractor-stat"><div class="label">Registros / viajes</div><div class="value">${totalReg.toLocaleString('en-US')}</div></div>
-      <div class="tractor-stat"><div class="label">Neto total (ton)</div><div class="value">${fmt3(totalNeto)}</div></div>
+      <div class="tractor-stat"><div class="label">Métricas totales (ton)</div><div class="value">${fmt3(totalNeto)}</div></div>
       <div class="tractor-stat"><div class="label">Cortas total (ton)</div><div class="value">${fmt3(totalCortas)}</div></div>
     </div>
 
     <div class="group-label" style="margin-top:22px;">Resumen por contrato</div>
     <div class="tractor-table-wrap"><table class="tractor-table">
-      <thead><tr><th>Contrato</th>${hasNombre ? '<th>Transportista</th>' : ''}<th>Frentes</th><th class="num">Registros</th><th class="num">Neto (ton)</th><th class="num">Cortas (ton)</th><th class="num">% del neto</th></tr></thead><tbody>`;
+      <thead><tr><th>Contrato</th>${hasNombre ? '<th>Transportista</th>' : ''}<th>Frentes</th><th class="num">Registros</th><th class="num">Métricas (ton)</th><th class="num">Cortas (ton)</th><th class="num">% de métricas</th></tr></thead><tbody>`;
 
   list.forEach(g => {
     const frentes = [...g.frentes].sort((a,b) => Number(a) - Number(b)).join(', ') || '—';
@@ -1258,7 +1258,7 @@ function renderContratoDetalle(contratoRows, content){
       <div class="tractor-stat"><div class="label">Contrato seleccionado</div><div class="value">${escapeHtml(selectedContrato)}</div></div>
       ${nombre ? `<div class="tractor-stat"><div class="label">Transportista</div><div class="value" style="font-size:14px;">${escapeHtml(nombre)}</div></div>` : ''}
       <div class="tractor-stat"><div class="label">Registros / viajes</div><div class="value">${contratoRows.length.toLocaleString('en-US')}</div></div>
-      <div class="tractor-stat"><div class="label">Neto (ton)</div><div class="value">${fmt3(totalNeto)}</div></div>
+      <div class="tractor-stat"><div class="label">Métricas (ton)</div><div class="value">${fmt3(totalNeto)}</div></div>
       <div class="tractor-stat"><div class="label">Cortas (ton)</div><div class="value">${fmt3(totalCortas)}</div></div>
     </div>
 
@@ -1268,7 +1268,7 @@ function renderContratoDetalle(contratoRows, content){
     </div>
     <div id="contrato-sec-frente"${contratoSecOpen.frente ? '' : ' hidden'}>
     <div class="tractor-table-wrap"><table class="tractor-table">
-      <thead><tr><th>Frente</th><th class="num">Registros</th><th class="num">Neto (ton)</th><th class="num">Cortas (ton)</th></tr></thead><tbody>`;
+      <thead><tr><th>Frente</th><th class="num">Registros</th><th class="num">Métricas (ton)</th><th class="num">Cortas (ton)</th></tr></thead><tbody>`;
   frenteList.forEach(f => {
     html += `<tr><td>Frente ${escapeHtml(f.frente)}</td><td class="num">${f.registros.toLocaleString('en-US')}</td><td class="num">${fmt3(f.neto)}</td><td class="num">${fmt3(f.cortas)}</td></tr>`;
   });
@@ -1292,7 +1292,7 @@ function renderContratoDetalle(contratoRows, content){
       <div class="tractor-day-group">
         <button class="tractor-group-title tractor-collapse-toggle tractor-day-title" type="button" aria-expanded="false" aria-controls="${dayPanelId}">
           <span>Día ${escapeHtml(day.dia)} · ${subCount} subdivisiones · ${day.records.length} registros</span>
-          <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(day.neto)} ton neto · ${fmt3(day.cortas)} ton cortas</span><span class="tractor-collapse-icon">+</span></span>
+          <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(day.neto)} ton métricas · ${fmt3(day.cortas)} ton cortas</span><span class="tractor-collapse-icon">+</span></span>
         </button>
         <div class="tractor-day-content" id="${dayPanelId}" hidden>`;
 
@@ -1307,11 +1307,11 @@ function renderContratoDetalle(contratoRows, content){
   <div class="tractor-collapsible-group tractor-subgroup">
     <button class="tractor-group-title tractor-collapse-toggle" type="button" aria-expanded="true" aria-controls="${panelId}">
       <span>Día ${escapeHtml(day.dia)} · ${etiquetaSubdiv} · ${sub.records.length} registros</span>
-      <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(sub.neto)} ton neto · ${fmt3(sub.cortas)} ton cortas</span><span class="tractor-collapse-icon">−</span></span>
+      <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(sub.neto)} ton métricas · ${fmt3(sub.cortas)} ton cortas</span><span class="tractor-collapse-icon">−</span></span>
     </button>
           <div class="tractor-group-content" id="${panelId}">
             <div class="tractor-table-wrap"><table class="tractor-table">
-              <thead><tr><th>Secuencia</th><th>Frente</th><th>Tractores</th><th class="num">Neto (ton)</th><th class="num">Cortas (ton)</th></tr></thead><tbody>`;
+              <thead><tr><th>Secuencia</th><th>Frente</th><th>Tractores</th><th class="num">Métricas (ton)</th><th class="num">Cortas (ton)</th></tr></thead><tbody>`;
       sorted.forEach(r => {
         html += `<tr><td>${escapeHtml(r.sequence)}</td><td>Frente ${escapeHtml(r.frente)}</td><td>${r.tractors.length ? r.tractors.map(escapeHtml).join(' / ') : '—'}</td><td class="num">${fmt3(r.neto)}</td><td class="num"><strong>${fmt3(r.cortas)}</strong></td></tr>`;
       });
@@ -1414,7 +1414,7 @@ function frenteEl(f, diasSeleccionados){
       <div>Frente ${f.frente}<span class="sub">${Object.keys(f.subdivs).length} subdivisión(es)</span></div>
       <button class="collapse-btn" type="button">Ocultar subdivisiones</button>
     </div>
-    <div class="t-metric"><div class="label">Neto (ton)</div><div class="value">${fmt(f.neto)}</div></div>
+    <div class="t-metric"><div class="label">Métricas (ton)</div><div class="value">${fmt(f.neto)}</div></div>
     <div class="t-metric"><div class="label">Cortas (ton)</div><div class="value">${fmt(f.cortas)}</div></div>
     <div class="front-progress">
       <div class="label"><span>Meta ${metaTexto} · ${metaDiariaTexto}</span><span class="value">${avance.toFixed(1)}%</span></div>
@@ -1453,7 +1453,7 @@ function subdivEl(s, frenteNetoTotal){
   el.className = 'subdiv-row';
   el.innerHTML = `
     <div class="s-id">${titulo}</div>
-    <div class="s-metric"><span class="s-label">Neto</span> ${fmt(s.neto)} ton</div>
+    <div class="s-metric"><span class="s-label">Métricas</span> ${fmt(s.neto)} ton</div>
     <div class="s-metric"><span class="s-label">Cortas</span> ${fmt(s.cortas)} ton</div>
     <div class="s-share">
       <div class="s-share-track"><div class="s-share-fill" style="width:${Math.min(share,100)}%"></div></div>
