@@ -451,8 +451,8 @@
   }
 
   /* ---------- Reportes separados ---------- */
-  .report-tabs{max-width:1080px;margin:24px auto 0;padding:0 24px;display:flex;gap:8px;border-bottom:1px solid var(--line);}
-  .report-tab{background:transparent;color:var(--ink);border:1px solid var(--line);border-bottom:none;padding:11px 18px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.05em;}
+  .report-tabs{max-width:1080px;margin:24px auto 0;padding:0 24px;display:flex;gap:8px;border-bottom:1px solid var(--line);overflow-x:auto;}
+  .report-tab{background:transparent;color:var(--ink);border:1px solid var(--line);border-bottom:none;padding:11px 18px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
   .report-tab.active{background:var(--ink);color:var(--white);border-color:var(--ink);}
   .report-view{display:none;}
   .report-view.active{display:block;}
@@ -508,6 +508,14 @@
 .tractor-global-controls{display:flex;justify-content:flex-end;margin:8px 0 12px}.tractor-global-toggle{border:1px solid var(--line);background:var(--paper);padding:7px 12px;cursor:pointer;font:600 11px 'JetBrains Mono',monospace;letter-spacing:.02em}.tractor-global-toggle:hover{background:var(--paper-dim)}.tractor-global-icon{display:inline-block;width:12px;font-weight:700}
 .tractor-collapsible-group{margin:0 0 10px}.tractor-collapse-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;cursor:pointer;border:0;font:inherit}.tractor-group-right{display:flex;align-items:center;gap:14px;white-space:nowrap}.tractor-collapse-icon{font-size:16px;font-weight:700;min-width:12px;text-align:center}.tractor-group-content[hidden]{display:none}.tractor-group-content .tractor-table-wrap{margin-top:0}.tractor-group-content .tractor-table{margin-top:0}.subdiv-ref{font-weight:400;opacity:.65;font-size:.86em;margin-left:4px}.tractor-group-title .subdiv-ref{font-family:'JetBrains Mono',monospace;letter-spacing:.02em}
 .tractor-day-group{margin:0 0 14px}.tractor-day-title{font-size:13px;font-weight:700;border-left:4px solid var(--cane)}.tractor-day-content{padding:4px 0 0 10px}.tractor-subgroup{margin:0 0 8px}.tractor-subgroup .tractor-group-title{margin-top:0}.tractor-day-title .tractor-subtotal{font-size:13px}
+
+/* ---------- Reporte por contrato ---------- */
+.contrato-summary{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}
+.contrato-row{cursor:pointer;}
+.contrato-row:hover td{background:var(--paper-dim);}
+.contrato-row:focus-visible{outline:2px solid var(--cane);outline-offset:-2px;}
+.contrato-total td{border-top:1px solid var(--ink);border-bottom:none;font-weight:700;}
+.contrato-hint{margin:8px 0 0;color:#8B8A7C;font-size:11px;}
 </style>
 </head>
 <body>
@@ -567,6 +575,7 @@
 <div class="report-tabs">
   <button class="report-tab active" type="button" data-report="general">Reporte general</button>
   <button class="report-tab" type="button" data-report="tractor">Reporte por tractor</button>
+  <button class="report-tab" type="button" data-report="contrato">Reporte por contrato</button>
 </div>
 
 <section class="report-view active" id="report-general">
@@ -591,6 +600,24 @@
   </section>
 </section>
 
+<section class="report-view" id="report-contrato">
+  <section class="tractor-panel" id="contrato-panel">
+    <div class="tractor-card">
+      <div class="tractor-head">
+        <div>
+          <h2 class="tractor-title">Viajes por contrato</h2>
+          <p class="tractor-help">Sin selección se muestra el resumen de todos los contratos del rango de días elegido. Selecciona un contrato (o haz clic en su fila) para ver el detalle agrupado por día de zafra y subdivisión.</p>
+        </div>
+        <div class="field">
+          <label for="contrato-select">Contrato</label>
+          <select id="contrato-select" style="min-width:220px;"></select>
+        </div>
+      </div>
+      <div id="contrato-content"></div>
+    </div>
+  </section>
+</section>
+
 <footer>
   Fuente: tabla Historicoestable (AppSheet → Google Sheets · Historico.xlsx). Generado como página estática para GitHub Pages.
 </footer>
@@ -603,6 +630,7 @@
    2. La URL de Historicoestable está configurada de forma estática en HISTORICO_URL.
    3. Columnas esperadas (nombres tal cual en AppSheet):
       frente, subdiv, dia_zafra, neto_ton, TonsCortas, TON_ASIGNADO_BASE
+      Para el reporte por contrato: contrato (y opcional nombre_transportista)
 ------------------------------------------------------------------*/
 
 const HISTORICO_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQTRxf8Frx9Fg9A_xTG4afDfAfK2hoFKumaaS0CzmZNVgMu9iYB3vTpyHU3RmlOrA/pub?gid=1362879089&single=true&output=csv';
@@ -612,6 +640,9 @@ let rows = [];
 let subdivNames = {}; // LOCATIONID -> description
 let subdivNamesLoaded = false;
 let selectedTractor = '';
+let selectedContrato = '';
+let contratoField = null;
+let transportistaField = null;
 let sequenceField = null;
 let rowCounter = 0;
 let refreshTimer = null;
@@ -743,6 +774,12 @@ function calcTonAsignado(neto, tractor1, tractor2){
   if(t1 === 0 && t2 === 0) return 0; // caso "" en AppSheet
   const soloUno = (t1 > 0 && t2 === 0) || (t2 > 0 && t1 === 0);
   return soloUno ? neto : neto / 2;
+}
+
+// Toneladas cortas de una fila: usa la columna si viene en el CSV, si no la calcula
+function cortasOf(r){
+  const neto = toNum(r.neto_ton);
+  return (r.TonsCortas != null && r.TonsCortas !== '') ? toNum(r.TonsCortas) : calcTonsCortas(neto);
 }
 
 function normalizeTractor(v){
@@ -987,6 +1024,292 @@ function renderTractorPanel(dayRows){
   });
 }
 
+/* ---------------------------------------------------------------
+   REPORTE POR CONTRATO (transportista)
+------------------------------------------------------------------*/
+
+function detectContratoField(){
+  const fields = rows.length ? Object.keys(rows[0]) : [];
+  contratoField = fields.find(f => String(f).trim().toLowerCase() === 'contrato') || null;
+  transportistaField = fields.find(f => String(f).trim().toLowerCase() === 'nombre_transportista') || null;
+  return contratoField;
+}
+
+function getContrato(r){
+  if(!contratoField) return 'Sin contrato';
+  const s = normalizeId(r[contratoField]);
+  return s ? s : 'Sin contrato';
+}
+
+function getTransportista(r){
+  if(!transportistaField) return '';
+  const v = r[transportistaField];
+  return v == null ? '' : String(v).trim();
+}
+
+function getDayRows(){
+  const desdeEl = document.getElementById('dia-desde');
+  const hastaEl = document.getElementById('dia-hasta');
+  const desde = desdeEl.value ? Number(desdeEl.value) : null;
+  const hasta = hastaEl.value ? Number(hastaEl.value) : null;
+  const min = desde != null && hasta != null ? Math.min(desde, hasta) : (desde ?? hasta);
+  const max = desde != null && hasta != null ? Math.max(desde, hasta) : (desde ?? hasta);
+  return rows.filter(r => {
+    const d = Number(r.dia_zafra);
+    return Number.isFinite(d) && min != null && d >= min && d <= max;
+  });
+}
+
+function buildContratoSelector(dayRows){
+  const select = document.getElementById('contrato-select');
+  if(!select) return;
+  const available = new Set(dayRows.map(getContrato));
+  const list = [...available].sort((a,b) => a.localeCompare(b, 'es', {numeric:true, sensitivity:'base'}));
+  if(selectedContrato && !available.has(selectedContrato)) selectedContrato = '';
+  select.innerHTML = `<option value="">Todos los contratos</option>` + list.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  select.value = selectedContrato;
+}
+
+// Botones de expandir/contraer (mismo comportamiento que el reporte por tractor)
+function wireCollapsibles(container, toggleAllId){
+  const globalToggle = document.getElementById(toggleAllId);
+  if(globalToggle){
+    globalToggle.addEventListener('click', () => {
+      const dayButtons = [...container.querySelectorAll('.tractor-day-title')];
+      const subButtons = [...container.querySelectorAll('.tractor-subgroup > .tractor-collapse-toggle')];
+      const expand = globalToggle.getAttribute('aria-expanded') !== 'true';
+      [...dayButtons, ...subButtons].forEach(btn => {
+        const panel = document.getElementById(btn.getAttribute('aria-controls'));
+        if(!panel) return;
+        btn.setAttribute('aria-expanded', String(expand));
+        panel.hidden = !expand;
+        const icon = btn.querySelector('.tractor-collapse-icon');
+        if(icon) icon.textContent = expand ? '−' : '+';
+      });
+      globalToggle.setAttribute('aria-expanded', String(expand));
+      const icon = globalToggle.querySelector('.tractor-global-icon');
+      if(icon) icon.textContent = expand ? '−' : '+';
+      globalToggle.lastChild.textContent = expand ? ' Contraer todo' : ' Expandir todo';
+    });
+  }
+  container.querySelectorAll('.tractor-collapse-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const panel = document.getElementById(btn.getAttribute('aria-controls'));
+      if(!panel) return;
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!open));
+      panel.hidden = open;
+      const icon = btn.querySelector('.tractor-collapse-icon');
+      if(icon) icon.textContent = open ? '+' : '−';
+    });
+  });
+}
+
+function renderContratoPanel(dayRows){
+  const content = document.getElementById('contrato-content');
+  const select = document.getElementById('contrato-select');
+  if(!content || !select) return;
+
+  if(!detectContratoField()){
+    select.innerHTML = '<option value="">Sin columna contrato</option>';
+    content.innerHTML = '<div class="tractor-empty">No se encontró la columna <strong>contrato</strong> en el CSV de Historicoestable. Verifica que esté incluida en la hoja publicada.</div>';
+    return;
+  }
+
+  buildContratoSelector(dayRows);
+
+  if(!dayRows.length){
+    content.innerHTML = '<div class="tractor-empty">Sin registros en el rango de días elegido.</div>';
+    return;
+  }
+
+  if(!selectedContrato){
+    renderContratoResumen(dayRows, content);
+  }else{
+    renderContratoDetalle(dayRows.filter(r => getContrato(r) === selectedContrato), content);
+  }
+}
+
+function renderContratoResumen(dayRows, content){
+  const groups = {};
+  dayRows.forEach(r => {
+    const c = getContrato(r);
+    if(!groups[c]) groups[c] = {contrato:c, nombre:'', registros:0, neto:0, cortas:0, frentes:new Set()};
+    const g = groups[c];
+    g.registros++;
+    g.neto += toNum(r.neto_ton);
+    g.cortas += cortasOf(r);
+    if(r.frente != null && r.frente !== '') g.frentes.add(String(r.frente));
+    if(!g.nombre) g.nombre = getTransportista(r);
+  });
+
+  const list = Object.values(groups).sort((a,b) => b.neto - a.neto);
+  const totalReg = list.reduce((s,g) => s + g.registros, 0);
+  const totalNeto = list.reduce((s,g) => s + g.neto, 0);
+  const totalCortas = list.reduce((s,g) => s + g.cortas, 0);
+  const hasNombre = !!transportistaField;
+
+  let html = `
+    <div class="tractor-summary contrato-summary">
+      <div class="tractor-stat"><div class="label">Contratos</div><div class="value">${list.length.toLocaleString('en-US')}</div></div>
+      <div class="tractor-stat"><div class="label">Registros / viajes</div><div class="value">${totalReg.toLocaleString('en-US')}</div></div>
+      <div class="tractor-stat"><div class="label">Neto total (ton)</div><div class="value">${fmt3(totalNeto)}</div></div>
+      <div class="tractor-stat"><div class="label">Cortas total (ton)</div><div class="value">${fmt3(totalCortas)}</div></div>
+    </div>
+
+    <div class="group-label" style="margin-top:22px;">Resumen por contrato</div>
+    <div class="tractor-table-wrap"><table class="tractor-table">
+      <thead><tr><th>Contrato</th>${hasNombre ? '<th>Transportista</th>' : ''}<th>Frentes</th><th>Registros</th><th>Neto (ton)</th><th>Cortas (ton)</th><th>% del neto</th></tr></thead><tbody>`;
+
+  list.forEach(g => {
+    const frentes = [...g.frentes].sort((a,b) => Number(a) - Number(b)).join(', ') || '—';
+    const pct = totalNeto > 0 ? (g.neto / totalNeto) * 100 : 0;
+    html += `<tr class="contrato-row" tabindex="0" data-contrato="${escapeHtml(g.contrato)}" title="Ver detalle del contrato">
+      <td><strong>${escapeHtml(g.contrato)}</strong></td>
+      ${hasNombre ? `<td>${escapeHtml(g.nombre || '—')}</td>` : ''}
+      <td>${escapeHtml(frentes)}</td>
+      <td class="num">${g.registros.toLocaleString('en-US')}</td>
+      <td class="num">${fmt3(g.neto)}</td>
+      <td class="num">${fmt3(g.cortas)}</td>
+      <td class="num">${pct.toFixed(1)}%</td>
+    </tr>`;
+  });
+
+  html += `<tr class="contrato-total">
+      <td>Total</td>${hasNombre ? '<td></td>' : ''}<td></td>
+      <td class="num">${totalReg.toLocaleString('en-US')}</td>
+      <td class="num">${fmt3(totalNeto)}</td>
+      <td class="num">${fmt3(totalCortas)}</td>
+      <td class="num">100.0%</td>
+    </tr></tbody></table></div>
+    <p class="contrato-hint">Haz clic en un contrato para ver su detalle por día y subdivisión.</p>`;
+
+  content.innerHTML = html;
+
+  const pick = (tr) => {
+    selectedContrato = tr.dataset.contrato;
+    renderContratoPanel(getDayRows());
+  };
+  content.querySelectorAll('.contrato-row').forEach(tr => {
+    tr.addEventListener('click', () => pick(tr));
+    tr.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pick(tr); }
+    });
+  });
+}
+
+function renderContratoDetalle(contratoRows, content){
+  if(!contratoRows.length){
+    content.innerHTML = '<div class="tractor-empty">El contrato seleccionado no tiene registros en el rango de días elegido.</div>';
+    return;
+  }
+
+  const totalNeto = contratoRows.reduce((s,r) => s + toNum(r.neto_ton), 0);
+  const totalCortas = contratoRows.reduce((s,r) => s + cortasOf(r), 0);
+  const nombre = contratoRows.map(getTransportista).find(n => n) || '';
+
+  // Resumen por frente
+  const byFrente = {};
+  contratoRows.forEach(r => {
+    const k = String(r.frente ?? '—');
+    if(!byFrente[k]) byFrente[k] = {frente:r.frente, registros:0, neto:0, cortas:0};
+    byFrente[k].registros++;
+    byFrente[k].neto += toNum(r.neto_ton);
+    byFrente[k].cortas += cortasOf(r);
+  });
+  const frenteList = Object.values(byFrente).sort((a,b) => Number(a.frente) - Number(b.frente));
+
+  // Primer nivel: día. Segundo nivel: subdivisión.
+  const byDay = {};
+  contratoRows.forEach((r, index) => {
+    const dia = Number(r.dia_zafra);
+    const dayKey = String(dia);
+    const neto = toNum(r.neto_ton);
+    const cortas = cortasOf(r);
+    const record = {
+      sequence: getSequence(r, index),
+      frente: r.frente,
+      tractors: uniqueTractorsForRows([r]),
+      neto,
+      cortas
+    };
+    if(!byDay[dayKey]) byDay[dayKey] = {dia, records:[], subdivs:{}, neto:0, cortas:0};
+    const d = byDay[dayKey];
+    d.records.push(record);
+    d.neto += neto;
+    d.cortas += cortas;
+    const subKey = String(r.subdiv ?? '—');
+    if(!d.subdivs[subKey]) d.subdivs[subKey] = {subdiv:r.subdiv, records:[], neto:0, cortas:0};
+    d.subdivs[subKey].records.push(record);
+    d.subdivs[subKey].neto += neto;
+    d.subdivs[subKey].cortas += cortas;
+  });
+  const days = Object.values(byDay).sort((a,b) => a.dia - b.dia);
+
+  let html = `
+    <div class="tractor-summary contrato-summary">
+      <div class="tractor-stat"><div class="label">Contrato seleccionado</div><div class="value">${escapeHtml(selectedContrato)}</div></div>
+      ${nombre ? `<div class="tractor-stat"><div class="label">Transportista</div><div class="value" style="font-size:14px;">${escapeHtml(nombre)}</div></div>` : ''}
+      <div class="tractor-stat"><div class="label">Registros / viajes</div><div class="value">${contratoRows.length.toLocaleString('en-US')}</div></div>
+      <div class="tractor-stat"><div class="label">Neto (ton)</div><div class="value">${fmt3(totalNeto)}</div></div>
+      <div class="tractor-stat"><div class="label">Cortas (ton)</div><div class="value">${fmt3(totalCortas)}</div></div>
+    </div>
+
+    <div class="group-label" style="margin-top:22px;">Resumen por frente</div>
+    <div class="tractor-table-wrap"><table class="tractor-table">
+      <thead><tr><th>Frente</th><th>Registros</th><th>Neto (ton)</th><th>Cortas (ton)</th></tr></thead><tbody>`;
+  frenteList.forEach(f => {
+    html += `<tr><td>Frente ${escapeHtml(f.frente)}</td><td class="num">${f.registros.toLocaleString('en-US')}</td><td class="num">${fmt3(f.neto)}</td><td class="num">${fmt3(f.cortas)}</td></tr>`;
+  });
+  html += `</tbody></table></div>
+
+    <div class="group-label" style="margin-top:22px;">Detalle agrupado por día y subdivisión</div>
+    <div class="tractor-global-controls">
+      <button class="tractor-global-toggle" id="contrato-toggle-all" type="button" aria-expanded="false">
+        <span class="tractor-global-icon">+</span> Expandir todo
+      </button>
+    </div>`;
+
+  days.forEach((day, dayIndex) => {
+    const dayPanelId = `contrato-day-${dayIndex}`;
+    const subCount = Object.keys(day.subdivs).length;
+    html += `
+      <div class="tractor-day-group">
+        <button class="tractor-group-title tractor-collapse-toggle tractor-day-title" type="button" aria-expanded="false" aria-controls="${dayPanelId}">
+          <span>Día ${escapeHtml(day.dia)} · ${subCount} subdivisiones · ${day.records.length} registros</span>
+          <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(day.neto)} ton neto · ${fmt3(day.cortas)} ton cortas</span><span class="tractor-collapse-icon">+</span></span>
+        </button>
+        <div class="tractor-day-content" id="${dayPanelId}" hidden>`;
+
+    Object.values(day.subdivs).forEach((sub, subIndex) => {
+      const panelId = `contrato-day-${dayIndex}-sub-${subIndex}`;
+      const nombreSubdiv = getSubdivName(sub.subdiv);
+      const etiquetaSubdiv = nombreSubdiv
+        ? `${escapeHtml(nombreSubdiv)} <span class="subdiv-ref">(Subdiv. ${escapeHtml(sub.subdiv)})</span>`
+        : `Subdivisión ${escapeHtml(sub.subdiv)}`;
+      const sorted = sub.records.slice().sort((a,b) => Number(a.frente) - Number(b.frente) || String(a.sequence).localeCompare(String(b.sequence), 'es', {numeric:true}));
+      html += `
+  <div class="tractor-collapsible-group tractor-subgroup">
+    <button class="tractor-group-title tractor-collapse-toggle" type="button" aria-expanded="true" aria-controls="${panelId}">
+      <span>Día ${escapeHtml(day.dia)} · ${etiquetaSubdiv} · ${sub.records.length} registros</span>
+      <span class="tractor-group-right"><span class="tractor-subtotal">${fmt3(sub.neto)} ton neto · ${fmt3(sub.cortas)} ton cortas</span><span class="tractor-collapse-icon">−</span></span>
+    </button>
+          <div class="tractor-group-content" id="${panelId}">
+            <div class="tractor-table-wrap"><table class="tractor-table">
+              <thead><tr><th>Secuencia</th><th>Frente</th><th>Tractores</th><th>Neto (ton)</th><th>Cortas (ton)</th></tr></thead><tbody>`;
+      sorted.forEach(r => {
+        html += `<tr><td>${escapeHtml(r.sequence)}</td><td>Frente ${escapeHtml(r.frente)}</td><td>${r.tractors.length ? r.tractors.map(escapeHtml).join(' / ') : '—'}</td><td class="num">${fmt3(r.neto)}</td><td class="num"><strong>${fmt3(r.cortas)}</strong></td></tr>`;
+      });
+      html += `</tbody></table></div></div></div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  content.innerHTML = html;
+  wireCollapsibles(content, 'contrato-toggle-all');
+}
+
 function render(){
   const desdeEl = document.getElementById('dia-desde');
   const hastaEl = document.getElementById('dia-hasta');
@@ -1005,6 +1328,7 @@ function render(){
   main.innerHTML = '';
   detectSequenceField();
   renderTractorPanel(dayRows);
+  renderContratoPanel(dayRows);
 
   if(!dayRows.length){
     main.innerHTML = '<div class="empty">Sin registros para este día de zafra.</div>';
@@ -1137,17 +1461,12 @@ document.querySelectorAll('.report-tab').forEach(btn => {
 
 document.getElementById('tractor-select').addEventListener('change', (e) => {
   selectedTractor = e.target.value;
-  const desdeEl = document.getElementById('dia-desde');
-  const hastaEl = document.getElementById('dia-hasta');
-  const desde = desdeEl.value ? Number(desdeEl.value) : null;
-  const hasta = hastaEl.value ? Number(hastaEl.value) : null;
-  const min = desde != null && hasta != null ? Math.min(desde, hasta) : (desde ?? hasta);
-  const max = desde != null && hasta != null ? Math.max(desde, hasta) : (desde ?? hasta);
-  const dayRows = rows.filter(r => {
-    const d = Number(r.dia_zafra);
-    return Number.isFinite(d) && min != null && d >= min && d <= max;
-  });
-  renderTractorPanel(dayRows);
+  renderTractorPanel(getDayRows());
+});
+
+document.getElementById('contrato-select').addEventListener('change', (e) => {
+  selectedContrato = e.target.value;
+  renderContratoPanel(getDayRows());
 });
 
 loadFromUrl(false);
