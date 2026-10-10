@@ -558,6 +558,13 @@
     <label for="dia-hasta">Hasta día</label>
     <select id="dia-hasta"></select>
   </div>
+  <div class="field">
+    <label for="dia-orden">Orden de días</label>
+    <select id="dia-orden">
+      <option value="asc">Ascendente (1 → último)</option>
+      <option value="desc">Descendente (último → 1)</option>
+    </select>
+  </div>
   <div class="field" style="flex:1;">
     <label>Fuente de datos</label>
     <input type="text" value="Historicoestable · Google Sheets" readonly>
@@ -641,6 +648,8 @@ let subdivNames = {}; // LOCATIONID -> description
 let subdivNamesLoaded = false;
 let selectedTractor = '';
 let selectedContrato = '';
+let diaOrden = 'asc'; // 'asc' o 'desc'
+function cmpDia(a, b){ return diaOrden === 'desc' ? b - a : a - b; }
 let contratoField = null;
 let transportistaField = null;
 let sequenceField = null;
@@ -913,7 +922,7 @@ function renderTractorPanel(dayRows){
   }
 
   const records = buildTractorSequenceData(dayRows, selectedTractor)
-    .sort((a,b) => a.dia - b.dia || String(a.subdiv).localeCompare(String(b.subdiv), 'es', {numeric:true}) || Number(a.frente)-Number(b.frente) || String(a.sequence).localeCompare(String(b.sequence), 'es', {numeric:true}));
+    .sort((a,b) => cmpDia(a.dia, b.dia) || String(a.subdiv).localeCompare(String(b.subdiv), 'es', {numeric:true}) || Number(a.frente)-Number(b.frente) || String(a.sequence).localeCompare(String(b.sequence), 'es', {numeric:true}));
 
   if(!records.length){
     content.innerHTML = '<div class="tractor-empty">El tractor seleccionado no tiene viajes en el rango de días elegido.</div>';
@@ -936,7 +945,7 @@ function renderTractorPanel(dayRows){
     d.subdivs[subKey].total += r.asignado;
   });
 
-  const days = Object.values(byDay).sort((a,b) => Number(a.dia)-Number(b.dia));
+  const days = Object.values(byDay).sort((a,b) => cmpDia(Number(a.dia), Number(b.dia)));
 
   let html = `
     <div class="tractor-summary">
@@ -1244,7 +1253,7 @@ function renderContratoDetalle(contratoRows, content){
     d.subdivs[subKey].neto += neto;
     d.subdivs[subKey].cortas += cortas;
   });
-  const days = Object.values(byDay).sort((a,b) => a.dia - b.dia);
+  const days = Object.values(byDay).sort((a,b) => cmpDia(a.dia, b.dia));
 
   let html = `
     <div class="tractor-summary contrato-summary">
@@ -1462,6 +1471,11 @@ document.querySelectorAll('.report-tab').forEach(btn => {
 document.getElementById('tractor-select').addEventListener('change', (e) => {
   selectedTractor = e.target.value;
   renderTractorPanel(getDayRows());
+});
+
+document.getElementById('dia-orden').addEventListener('change', (e) => {
+  diaOrden = e.target.value;
+  render();
 });
 
 document.getElementById('contrato-select').addEventListener('change', (e) => {
