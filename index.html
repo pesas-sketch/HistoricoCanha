@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
 <title>Resumen Diario · Zafra por Frente</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -523,7 +525,7 @@
 <header class="hero">
   <p class="eyebrow">Zafra · Control de recepción</p>
   <h1 class="title">Resumen diario<br><em>por frente y subdivisión</em></h1>
-  <p class="hero-sub">Tonelaje neto y toneladas cortas recibidas, agrupado por frente y subdivisión para el día de zafra seleccionado. Datos desde la tabla <strong>Historicoestable</strong>.</p>
+  <p class="hero-sub">Tonelaje neto y toneladas cortas recibidas, agrupado por frente y subdivisión para el día de zafra seleccionado.</p>
 
   <div class="hero-stat-row">
     <div class="hero-stat">
@@ -564,14 +566,6 @@
       <option value="asc">Ascendente (1 → último)</option>
       <option value="desc">Descendente (último → 1)</option>
     </select>
-  </div>
-  <div class="field" style="flex:1;">
-    <label>Fuente de datos</label>
-    <input type="text" value="Historicoestable · Google Sheets" readonly>
-  </div>
-  <div class="field" style="flex:1;">
-    <label>Subdivisiones</label>
-    <input type="text" value="TSUBDIVS.json · GitHub" readonly>
   </div>
   <button class="ghost" id="print-btn">Imprimir / PDF</button>
   <div class="spacer"></div>
@@ -626,7 +620,7 @@
 </section>
 
 <footer>
-  Fuente: tabla Historicoestable (AppSheet → Google Sheets · Historico.xlsx). Generado como página estática para GitHub Pages.
+  Resumen diario de zafra.
 </footer>
 
 <script>
@@ -721,7 +715,7 @@ function loadFromUrl(silent){
     .then(([text]) => {
       const ok = parseAndRender(text);
       if(ok){
-        document.getElementById('status').textContent = subdivNamesLoaded ? 'Datos cargados · TSUBDIVS.json actualizado desde GitHub' : 'Datos cargados · no se pudo cargar TSUBDIVS.json';
+        document.getElementById('status').textContent = subdivNamesLoaded ? 'Datos cargados' : 'Datos cargados · sin nombres de subdivisión';
         document.getElementById('refresh-indicator').textContent = '';
       }
     })
@@ -735,7 +729,7 @@ function parseAndRender(csvText){
   const parsed = Papa.parse(csvText.trim(), {header:true, dynamicTyping:true, skipEmptyLines:true});
   const missing = REQUIRED_COLS.filter(c => !parsed.meta.fields || !parsed.meta.fields.includes(c));
   if(missing.length){
-    document.getElementById('status').textContent = 'El enlace no trae un CSV válido (faltan columnas: ' + missing.join(', ') + '). Revisa que la URL termine en output=csv, no en pubhtml.';
+    document.getElementById('status').textContent = 'La fuente de datos no trae las columnas esperadas (faltan: ' + missing.join(', ') + ').';
     return false;
   }
   rows = parsed.data;
@@ -1121,7 +1115,7 @@ function renderContratoPanel(dayRows){
 
   if(!detectContratoField()){
     select.innerHTML = '<option value="">Sin columna contrato</option>';
-    content.innerHTML = '<div class="tractor-empty">No se encontró la columna <strong>contrato</strong> en el CSV de Historicoestable. Verifica que esté incluida en la hoja publicada.</div>';
+    content.innerHTML = '<div class="tractor-empty">No se encontró la columna <strong>contrato</strong> en los datos cargados. Verifica que esté incluida en la hoja publicada.</div>';
     return;
   }
 
