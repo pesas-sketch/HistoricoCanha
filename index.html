@@ -519,6 +519,8 @@
 .contrato-total td{border-top:1px solid var(--ink);border-bottom:none;font-weight:700;}
 .contrato-hint{margin:8px 0 0;color:#8B8A7C;font-size:11px;}
 .contrato-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.tractor-table th.num{text-align:right;}
+.tractor-global-toggle{color:var(--ink);}
 </style>
 </head>
 <body>
@@ -983,7 +985,7 @@ function renderTractorPanel(dayRows){
     </button>
           <div class="tractor-group-content" id="${panelId}">
             <div class="tractor-table-wrap"><table class="tractor-table">
-              <thead><tr><th>Secuencia</th><th>Frente</th><th>Tractores</th><th>Neto total (ton)</th><th>Neto asignado (ton)</th></tr></thead><tbody>`;
+              <thead><tr><th>Secuencia</th><th>Frente</th><th>Tractores</th><th class="num">Neto total (ton)</th><th class="num">Neto asignado (ton)</th></tr></thead><tbody>`;
       sub.records.forEach(r => {
         html += `<tr><td>${escapeHtml(r.sequence)}</td><td>Frente ${escapeHtml(r.frente)}</td><td>${r.tractors.map(escapeHtml).join(' / ')}</td><td class="num">${fmt3(r.neto)}</td><td class="num"><strong>${fmt3(r.asignado)}</strong></td></tr>`;
       });
@@ -1164,7 +1166,7 @@ function renderContratoResumen(dayRows, content){
 
     <div class="group-label" style="margin-top:22px;">Resumen por contrato</div>
     <div class="tractor-table-wrap"><table class="tractor-table">
-      <thead><tr><th>Contrato</th>${hasNombre ? '<th>Transportista</th>' : ''}<th>Frentes</th><th>Registros</th><th>Neto (ton)</th><th>Cortas (ton)</th><th>% del neto</th></tr></thead><tbody>`;
+      <thead><tr><th>Contrato</th>${hasNombre ? '<th>Transportista</th>' : ''}<th>Frentes</th><th class="num">Registros</th><th class="num">Neto (ton)</th><th class="num">Cortas (ton)</th><th class="num">% del neto</th></tr></thead><tbody>`;
 
   list.forEach(g => {
     const frentes = [...g.frentes].sort((a,b) => Number(a) - Number(b)).join(', ') || '—';
@@ -1266,7 +1268,7 @@ function renderContratoDetalle(contratoRows, content){
     </div>
     <div id="contrato-sec-frente"${contratoSecOpen.frente ? '' : ' hidden'}>
     <div class="tractor-table-wrap"><table class="tractor-table">
-      <thead><tr><th>Frente</th><th>Registros</th><th>Neto (ton)</th><th>Cortas (ton)</th></tr></thead><tbody>`;
+      <thead><tr><th>Frente</th><th class="num">Registros</th><th class="num">Neto (ton)</th><th class="num">Cortas (ton)</th></tr></thead><tbody>`;
   frenteList.forEach(f => {
     html += `<tr><td>Frente ${escapeHtml(f.frente)}</td><td class="num">${f.registros.toLocaleString('en-US')}</td><td class="num">${fmt3(f.neto)}</td><td class="num">${fmt3(f.cortas)}</td></tr>`;
   });
@@ -1309,7 +1311,7 @@ function renderContratoDetalle(contratoRows, content){
     </button>
           <div class="tractor-group-content" id="${panelId}">
             <div class="tractor-table-wrap"><table class="tractor-table">
-              <thead><tr><th>Secuencia</th><th>Frente</th><th>Tractores</th><th>Neto (ton)</th><th>Cortas (ton)</th></tr></thead><tbody>`;
+              <thead><tr><th>Secuencia</th><th>Frente</th><th>Tractores</th><th class="num">Neto (ton)</th><th class="num">Cortas (ton)</th></tr></thead><tbody>`;
       sorted.forEach(r => {
         html += `<tr><td>${escapeHtml(r.sequence)}</td><td>Frente ${escapeHtml(r.frente)}</td><td>${r.tractors.length ? r.tractors.map(escapeHtml).join(' / ') : '—'}</td><td class="num">${fmt3(r.neto)}</td><td class="num"><strong>${fmt3(r.cortas)}</strong></td></tr>`;
       });
