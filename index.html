@@ -1,17 +1,17 @@
-!DOCTYPE html
-html lang=es
-body
-  button id=conectarConectarbutton
-  button id=desconectar disabledDesconectarbutton
-  pEstado span id=estadoDesconectadospanp
-  pÚltima lectura strong id=lectura-strongp
-  pre id=logpre
+<!DOCTYPE html>
+<html lang="es">
+<body>
+  <button id="conectar">Conectar</button>
+  <button id="desconectar" disabled>Desconectar</button>
+  <p>Estado: <span id="estado">Desconectado</span></p>
+  <p>Última lectura: <strong id="lectura">-</strong></p>
+  <pre id="log"></pre>
 
-script
-const CONFIG = { baudRate 9600, dataBits 8, stopBits 1, parity 'none' };
+<script>
+const CONFIG = { baudRate: 9600, dataBits: 8, stopBits: 1, parity: 'none' };
 let port, reader, keepReading = false;
 
-const $ = id = document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 async function abrir(p) {
   port = p;
@@ -33,14 +33,14 @@ async function leer() {
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value, { stream true });
+        buffer += decoder.decode(value, { stream: true });
 
-        const lineas = buffer.split(rn);
-        buffer = lineas.pop();  fragmento incompleto
-        lineas.forEach(l = { if (l.trim()) procesar(l.trim()); });
+        const lineas = buffer.split(/\r?\n/);
+        buffer = lineas.pop(); // fragmento incompleto
+        lineas.forEach(l => { if (l.trim()) procesar(l.trim()); });
       }
     } catch (e) {
-      console.error('Error de lectura', e);
+      console.error('Error de lectura:', e);
     } finally {
       reader.releaseLock();
     }
@@ -53,32 +53,32 @@ async function leer() {
 
 function procesar(linea) {
   $('lectura').textContent = linea;
-  $('log').textContent = linea + 'n' + $('log').textContent.slice(0, 2000);
+  $('log').textContent = linea + '\n' + $('log').textContent.slice(0, 2000);
 }
 
-$('conectar').onclick = async () = {
+$('conectar').onclick = async () => {
   try {
     await abrir(await navigator.serial.requestPort());
   } catch (e) {
-    $('estado').textContent = 'Error ' + e.message;
+    $('estado').textContent = 'Error: ' + e.message;
   }
 };
 
-$('desconectar').onclick = async () = {
+$('desconectar').onclick = async () => {
   keepReading = false;
   if (reader) await reader.cancel();
 };
 
- Si el usuario desenchufa el convertidor
-navigator.serial.addEventListener('disconnect', () = {
+// Si el usuario desenchufa el convertidor
+navigator.serial.addEventListener('disconnect', () => {
   keepReading = false;
   $('estado').textContent = 'Dispositivo desconectado';
 });
 
- Reconexión automática si ya se autorizó antes
-navigator.serial.getPorts().then(ports = {
+// Reconexión automática si ya se autorizó antes
+navigator.serial.getPorts().then(ports => {
   if (ports.length) abrir(ports[0]).catch(console.error);
 });
-script
-body
-html
+</script>
+</body>
+</html>
