@@ -3,44 +3,58 @@
 <body>
   <button id="conectar">Conectar</button>
   <button id="desconectar" disabled>Desconectar</button>
-  <p>Estado: <span id="estado">Desconectado</span></p>
-  <p>Última lectura: <strong id="lectura">-</strong></p>
-  <pre id="log"></pre>
+  <p>Estado: <span id="estado">Desconectado</span> | Bytes: <span id="count">0</span></p>
+  <h2>Peso: <span id="peso">-</span></h2>
+  <p>Última trama: <code id="trama">-</code></p>
+  <pre id="log" style="background:#eee;padding:8px;min-height:150px"></pre>
 
 <script>
 const CONFIG = { baudRate: 9600, dataBits: 8, stopBits: 1, parity: 'none' };
-let port, reader, keepReading = false;
-
 const $ = id => document.getElementById(id);
+let port, reader, keep = false, total = 0;
 
-async function abrir(p) {
-  port = p;
-  await port.open(CONFIG);
-  $('estado').textContent = 'Conectado';
-  $('conectar').disabled = true;
-  $('desconectar').disabled = false;
-  leer();
-}
+$('conectar').onclick = async () => {
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open(CONFIG);
+    await port.setSignals({ dataTerminalReady: true, requestToSend: true });
+    $('estado').textContent = 'Conectado';
+    $('conectar').disabled = true;
+    $('desconectar').disabled = false;
+    leer();
+  } catch (e) {
+    $('estado').textContent = 'Error: ' + e.message;
+  }
+};
 
 async function leer() {
-  keepReading = true;
+  keep = true;
   let buffer = '';
-  const decoder = new TextDecoder();
-
-  while (port.readable && keepReading) {
+  const dec = new TextDecoder();
+  while (port.readable && keep) {
     reader = port.readable.getReader();
     try {
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value, { stream: true });
 
-        const lineas = buffer.split(/\r?\n/);
-        buffer = lineas.pop(); // fragmento incompleto
-        lineas.forEach(l => { if (l.trim()) procesar(l.trim()); });
+        total += value.length;
+        $('count').textContent = total;
+
+        // Crudo: texto visible + HEX
+        const hex = [...value].map(b => b.toString(16).padStart(2, '0')).join(' ');
+        const vis = dec.decode(value, { stream: true })
+          .replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+        $('log').textContent = `[${vis}]  ${hex}\n` + $('log').textContent.slice(0, 3000);
+
+        // Interpretación por tramas (cualquier terminador)
+        buffer += String.fromCharCode(...value);
+        const partes = buffer.split(/\r\n|\r|\n/);
+        buffer = partes.pop();
+        partes.forEach(p => { if (p.trim()) procesar(p.trim()); });
       }
     } catch (e) {
-      console.error('Error de lectura:', e);
+      $('estado').textContent = 'Error lectura: ' + e.message;
     } finally {
       reader.releaseLock();
     }
@@ -51,34 +65,16 @@ async function leer() {
   $('desconectar').disabled = true;
 }
 
-function procesar(linea) {
-  $('lectura').textContent = linea;
-  $('log').textContent = linea + '\n' + $('log').textContent.slice(0, 2000);
+function procesar(trama) {
+  $('trama').textContent = trama;
+  const m = trama.match(/-?\d+(?:\.\d+)?/); // primer número de la trama
+  if (m) $('peso').textContent = m[0];
 }
 
-$('conectar').onclick = async () => {
-  try {
-    await abrir(await navigator.serial.requestPort());
-  } catch (e) {
-    $('estado').textContent = 'Error: ' + e.message;
-  }
-};
-
 $('desconectar').onclick = async () => {
-  keepReading = false;
+  keep = false;
   if (reader) await reader.cancel();
 };
-
-// Si el usuario desenchufa el convertidor
-navigator.serial.addEventListener('disconnect', () => {
-  keepReading = false;
-  $('estado').textContent = 'Dispositivo desconectado';
-});
-
-// Reconexión automática si ya se autorizó antes
-navigator.serial.getPorts().then(ports => {
-  if (ports.length) abrir(ports[0]).catch(console.error);
-});
 </script>
 </body>
 </html>
